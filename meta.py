@@ -35,7 +35,7 @@ class Meta(nn.Module):
         # 外循环优化器
         self.meta_optim = optim.Adam(self.net.parameters(), lr=self.meta_lr) # parameters已被重写
 
-        # 内循环优化器 2022年11月15日
+        # 内循环优化器
         self.inner_loop_optimizer = inner_loop_optimizers.LSLRoptimizer(total_num_inner_loop_steps=self.task_num+1,
                                                                         init_update_lr=self.update_lr,
                                                                         use_learnable_learning_rates=1)

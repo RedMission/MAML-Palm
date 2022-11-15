@@ -8,6 +8,7 @@ import  numpy as np
 from    learner import Learner # 自定义类
 from    copy import deepcopy
 from learner_inception_new import Learner_inception_new
+import inner_loop_optimizers
 
 
 class Meta(nn.Module):
@@ -33,7 +34,10 @@ class Meta(nn.Module):
         self.net = Learner_inception_new(config) #改为inception模块构成的网络
         # 外循环优化器
         self.meta_optim = optim.Adam(self.net.parameters(), lr=self.meta_lr) # parameters已被重写
-
+        # 内循环优化器
+        self.inner_loop_optimizer = inner_loop_optimizers.LSLRoptimizer(total_num_inner_loop_steps=self.task_num+1,
+                                                                        init_update_lr=self.update_lr,
+                                                                        use_learnable_learning_rates=1)
     def get_per_step_loss_importance_vector(self):
             """
             生成一个维度的张量（num_inner_loop_steps），表示每一步的目标损失对优化损失的重要性。

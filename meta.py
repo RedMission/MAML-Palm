@@ -29,16 +29,43 @@ class Meta(nn.Module):
         self.update_step = args.update_step
         self.update_step_test = args.update_step_test
         self.current_epoch = 0
+        self.total_epoch = args.epoch
 
         # self.net = Learner(config) # 项目原始网络
         self.net = Learner_inception_new(config) #改为inception模块构成的网络
         # 外循环优化器
         self.meta_optim = optim.Adam(self.net.parameters(), lr=self.meta_lr) # parameters已被重写
+        # 外循环 余弦
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.meta_optim, T_max=100,
+                                                              eta_min=0.0001)
 
-        # 内循环优化器
+        # 内循环优化器 （待完成）
         self.inner_loop_optimizer = inner_loop_optimizers.LSLRoptimizer(total_num_inner_loop_steps=self.task_num+1,
                                                                         init_update_lr=self.update_lr,
-                                                                        use_learnable_learning_rates=1)
+                                                                        use_learnable_learning_rates=True)
+        # 内循环优化器初始化
+        self.inner_loop_optimizer.init(  # 初始化内训环的优化器 直接传入内循环网络参数字典
+            names_weights_dict=self.get_inner_loop_parameter_dict(params=self.net.named_parameters()))
+
+
+    def get_inner_loop_parameter_dict(self, params):
+        """
+        Returns a dictionary with the parameters to use for inner loop updates.返回一个包含用于内循环更新的参数的字典。
+        :param params: A dictionary of the network's parameters.
+        :return: A dictionary of the parameters to use for the inner loop optimization process.
+        """
+        return {
+            name: param
+            for name, param in params
+            if param.requires_grad
+            # and (
+            #     not self.args.enable_inner_loop_optimizable_bn_params
+            #     and "norm_layer" not in name
+            #     or self.args.enable_inner_loop_optimizable_bn_params
+            # )
+        }
+
+
     def get_per_step_loss_importance_vector(self):
             """
             生成一个维度的张量（num_inner_loop_steps），表示每一步的目标损失对优化损失的重要性。
@@ -97,17 +124,18 @@ class Meta(nn.Module):
         losses_q = [0 for _ in range(self.update_step + 1)]  # 新建list，元素个数为update_step数量个。losses_q[i] is the loss on step i
         corrects = [0 for _ in range(self.update_step + 1)]
         per_step_loss_importance_vectors = self.get_per_step_loss_importance_vector()  # 每步损失的权重
+
         for i in range(task_num):
 
             # 1. run the i-th task and compute loss for k=0
             logits = self.net(x_spt[i], vars=None, bn_training=True)
             loss = F.cross_entropy(logits, y_spt[i])
             grad = torch.autograd.grad(loss, self.net.parameters()) # 通过损失和参数计算梯度
-            # 更新权值 做LSLR
-            # fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(grad, self.net.parameters())))
+            # 更新权值 做LSLR（待完成）
             fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(grad, self.net.parameters())))
-
-
+            # fast_weights = self.inner_loop_optimizer.update_params(names_weights_dict=self.net.parameters(),
+            #                                                          names_grads_wrt_params_dict=grad,
+            #                                                          num_step=0)
 
             # this is the loss and accuracy before first update
             with torch.no_grad():
@@ -138,8 +166,12 @@ class Meta(nn.Module):
                 # 2. compute grad on theta_pi
                 grad = torch.autograd.grad(loss, fast_weights)
                 # 3. theta_pi = theta_pi - train_lr * grad
-                # 更新权值 做LSLR
+                # 更新权值 做LSLR（待完成）
                 fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(grad, fast_weights)))
+
+                # fast_weights = self.inner_loop_optimizer.update_params(names_weights_dict=fast_weights,
+                #                                                        names_grads_wrt_params_dict=grad,
+                #                                                        num_step=k)
 
                 logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
                 # loss_q will be overwritten and just keep the loss_q on last update step.
@@ -159,6 +191,9 @@ class Meta(nn.Module):
         self.meta_optim.zero_grad()
         loss_q.backward()
         self.meta_optim.step()
+        # 测试:余弦退火学习率
+        self.scheduler.step()
+
         accs = np.array(corrects) / (querysz * task_num)
 
         return accs

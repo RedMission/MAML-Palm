@@ -8,6 +8,7 @@ import  random, sys, pickle
 import  argparse
 
 from meta import Meta # 网络
+from torch.utils.tensorboard import SummaryWriter
 
 def mean_confidence_interval(accs, confidence=0.95):
     n = accs.shape[0]
@@ -183,7 +184,8 @@ def main():
         ('linear', [args.n_way, 88 * 18 * 18])  # x.shape后三位参数
     ]
     device = torch.device('cuda')
-    maml = Meta(args, config_inception3).to(device) # 传入网络参数构建 maml网络
+    maml = Meta(args, config).to(device) # 传入网络参数构建 maml网络
+    writer = SummaryWriter()
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -193,28 +195,31 @@ def main():
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
     mini = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented/', mode='train', n_way=args.n_way, k_shot=args.k_spt,
                         k_query=args.k_qry,
-                        batchsz=10000, resize=args.imgsz)
+                        batchsz=args.t_batchsz, # 总任务数？10000--5000
+                        resize=args.imgsz)
     mini_test = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented/', mode='test', n_way=args.n_way, k_shot=args.k_spt,
                              k_query=args.k_qry,
-                             batchsz=100, resize=args.imgsz)
+                             batchsz=100,
+                             resize=args.imgsz)
 
-    for epoch in range(args.epoch//10000):  # 不断取任务喂到maml中 得到精度
+    for epoch in range(args.epoch//args.t_batchsz):  #
         print("epoch:",epoch)
-        # fetch meta_batchsz num of episode each time
+        # fetch meta_batchsz num of episode each time （episode一次选择tesk的过程）
         # db = DataLoader(mini, args.task_num, shuffle=True, num_workers=1, pin_memory=True)
-        db = DataLoader(mini, args.task_num, shuffle=True, num_workers=0, pin_memory=True) # 训练数据 batchsz=10000
+        db = DataLoader(mini, args.task_num, shuffle=True, num_workers=0, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
 
-        for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 取到一个任务
-
+        for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
             x_spt, y_spt, x_qry, y_qry = x_spt.to(device), y_spt.to(device), x_qry.to(device), y_qry.to(device)
-            accs = maml(x_spt, y_spt, x_qry, y_qry) # 返回精度，会更新内层参数
+            accs,loss = maml(x_spt, y_spt, x_qry, y_qry) # 传入的多个任务(共task_num个)
+            # 可视化 （位置重新考虑
+            writer.add_scalar('Loss/train', loss[-1].item(), step)
 
             if step % 100 == 0:
                 print('step:', step, '\t training acc:', accs)
 
             if step % 500 == 0:  # evaluation
                 # db_test = DataLoader(mini_test, 1, shuffle=True, num_workers=1, pin_memory=True)
-                db_test = DataLoader(mini_test, 1, shuffle=True, num_workers=0, pin_memory=True) # 测试数据
+                db_test = DataLoader(mini_test, 1, shuffle=True, num_workers=0, pin_memory=True) # 测试 生成可以将所有任务跑一遍的迭代器
 
                 accs_all_test = []
 
@@ -230,18 +235,21 @@ def main():
                 print('Test acc:', accs)
 
 
+
+
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
-    argparser.add_argument('--n_way', type=int, help='n way', default=10)
+    argparser.add_argument('--epoch', type=int, help='epoch number', default=25000)
+    argparser.add_argument('--n_way', type=int, help='n way', default=20)
 
-    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=3) # default=1
+    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1) # default=1
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=2) # 原15
+    argparser.add_argument('--t_batchsz', type=int, help='train-batchsz', default=5000)
 
     argparser.add_argument('--imgsz', type=int, help='imgsz', default=84) # 图像尺寸
     argparser.add_argument('--imgc', type=int, help='imgc', default=3)
-    argparser.add_argument('--task_num', type=int, help='meta batch size, namely task num', default=4)
+    argparser.add_argument('--task_num', type=int, help='meta batch size, namely task num', default=5)
     argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-3)
     # argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-5)
 

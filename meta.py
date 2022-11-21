@@ -144,6 +144,7 @@ class Meta(nn.Module):
                 loss_q = F.cross_entropy(logits_q, y_qry[i])
                 losses_q[0] += loss_q * per_step_loss_importance_vectors[0]
 
+
                 pred_q = F.softmax(logits_q, dim=1).argmax(dim=1)
                 correct = torch.eq(pred_q, y_qry[i]).sum().item()
                 corrects[0] = corrects[0] + correct
@@ -173,10 +174,20 @@ class Meta(nn.Module):
                 #                                                        names_grads_wrt_params_dict=grad,
                 #                                                        num_step=k)
 
-                logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
-                # loss_q will be overwritten and just keep the loss_q on last update step.
-                loss_q = F.cross_entropy(logits_q, y_qry[i])
-                losses_q[k + 1] += loss_q * per_step_loss_importance_vectors[k+1]
+                # logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
+                # # loss_q will be overwritten and just keep the loss_q on last update step.
+                # loss_q = F.cross_entropy(logits_q, y_qry[i])
+                # losses_q[k + 1] += loss_q * per_step_loss_importance_vectors[k+1]
+                # 降低对计算资源的要求(博客 https://blog.csdn.net/wangkaidehao/article/details/105507809)
+                if k < self.update_step - 1:
+                    with torch.no_grad():
+                        logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
+                        loss_q = F.cross_entropy(logits_q, y_qry[i])
+                        losses_q[k + 1] += loss_q * per_step_loss_importance_vectors[k+1]
+                else:
+                    logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
+                    loss_q = F.cross_entropy(logits_q, y_qry[i])
+                    losses_q[k + 1] += loss_q * per_step_loss_importance_vectors[k + 1]
 
                 with torch.no_grad():
                     pred_q = F.softmax(logits_q, dim=1).argmax(dim=1)
@@ -195,8 +206,9 @@ class Meta(nn.Module):
         self.scheduler.step()
 
         accs = np.array(corrects) / (querysz * task_num)
-
-        return accs
+        loss = np.array(losses_q) / task_num
+        # loss是一个张量的列表
+        return accs,loss
 
     def finetunning(self, x_spt, y_spt, x_qry, y_qry):
         """

@@ -68,6 +68,19 @@ class Learner_inception_new(nn.Module):
                 self.vars.append(w)  # 加入list
                 # [ch_out]
                 self.vars.append(nn.Parameter(torch.zeros(param[0])))
+            elif name is 'downsample':
+                w = nn.Parameter(torch.ones(*param[:4]))
+                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
+                self.vars.append(w)  # 加入list
+                self.vars.append(nn.Parameter(torch.zeros(param[0])))
+                # bn
+                w = nn.Parameter(torch.ones(param[0]))
+                self.vars.append(w)
+                self.vars.append(nn.Parameter(torch.zeros(param[0])))
+                running_mean = nn.Parameter(torch.zeros(param[0]), requires_grad=False)
+                running_var = nn.Parameter(torch.ones(param[0]), requires_grad=False)
+                self.vars_bn.extend([running_mean, running_var])
+
             elif name is 'conv2d':
                 # [ch_out, ch_in, kernelsz, kernelsz]
                 w = nn.Parameter(torch.ones(*param[:4]))
@@ -98,7 +111,6 @@ class Learner_inception_new(nn.Module):
                 self.vars.append(w)
                 # [ch_out]
                 self.vars.append(nn.Parameter(torch.zeros(param[0])))
-
                 # must set requires_grad=False
                 running_mean = nn.Parameter(torch.zeros(param[0]), requires_grad=False)
                 running_var = nn.Parameter(torch.ones(param[0]), requires_grad=False)
@@ -119,9 +131,6 @@ class Learner_inception_new(nn.Module):
 
         idx = 0
         bn_idx = 0
-        # branch1x1=x
-        # branch5x5=x
-        # branch3x3=x
 
         for name, param in self.config:
             if name is 'branch1x1':
@@ -152,12 +161,23 @@ class Learner_inception_new(nn.Module):
                 idx += 2
 
             elif name is 'branch_pool':
-                w, b = vars[idx], vars[idx + 1] #取出权重和偏置
                 branch_pool = F.avg_pool2d(x, kernel_size=3, stride=1, padding=1)
+                w, b = vars[idx], vars[idx + 1] #取出权重和偏置
                 branch_pool = F.conv2d(branch_pool, w, b, stride=param[4], padding=param[5]) # 放入网络计算
                 outputs = [branch1x1, branch5x5, branch3x3, branch_pool]
-                x = torch.cat(outputs, dim=1)
+                inception_x = torch.cat(outputs, dim=1)
                 idx += 2
+            elif name is 'downsample':
+                w, b = vars[idx], vars[idx + 1] #取出权重和偏置
+                residual = F.conv2d(x, w, b, stride=param[4], padding=param[5]) # 输入考虑一下原始x
+                idx += 2
+                w, b = vars[idx], vars[idx + 1]
+                running_mean, running_var = self.vars_bn[bn_idx], self.vars_bn[bn_idx + 1]
+                residual = F.batch_norm(residual, running_mean, running_var, weight=w, bias=b, training=bn_training)
+                idx += 2
+                bn_idx += 2
+
+                x = inception_x + residual
 
             elif name is 'conv2d':
                 w, b = vars[idx], vars[idx + 1] #取出权重和偏置

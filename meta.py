@@ -34,7 +34,8 @@ class Meta(nn.Module):
         # self.net = Learner(config) # 项目原始网络
         self.net = Learner_inception_new(config) #改为inception模块构成的网络
         # 外循环优化器
-        self.meta_optim = optim.Adam(self.net.parameters(), lr=self.meta_lr) # parameters已被重写
+        self.meta_optim  = optim.RMSprop(self.net.parameters(), lr=self.meta_lr, alpha=0.9)
+        # self.meta_optim = optim.Adam(self.net.parameters(), lr=self.meta_lr) # parameters已被重写
         # 外循环 余弦
         self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.meta_optim, T_max=100,
                                                               eta_min=0.0001)
@@ -110,7 +111,7 @@ class Meta(nn.Module):
 
         return total_norm/counter
 
-    def forward(self, x_spt, y_spt, x_qry, y_qry):
+    def forward(self, x_spt, y_spt, x_qry, y_qry,MSL_flag):
         """
         :param x_spt:   [b, setsz, c_, h, w]
         :param y_spt:   [b, setsz]
@@ -123,7 +124,13 @@ class Meta(nn.Module):
 
         losses_q = [0 for _ in range(self.update_step + 1)]  # 新建list，元素个数为update_step数量个。losses_q[i] is the loss on step i
         corrects = [0 for _ in range(self.update_step + 1)]
-        per_step_loss_importance_vectors = self.get_per_step_loss_importance_vector()  # 每步损失的权重
+
+        if MSL_flag: # 默认不开启
+            # without MSL
+            per_step_loss_importance_vectors=np.ones(shape=(self.update_step + 1))
+        else:
+            # MSL
+            per_step_loss_importance_vectors = self.get_per_step_loss_importance_vector()  # 每步损失的权重
 
         for i in range(task_num):
 
@@ -183,7 +190,7 @@ class Meta(nn.Module):
                     with torch.no_grad():
                         logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
                         loss_q = F.cross_entropy(logits_q, y_qry[i])
-                        losses_q[k + 1] += loss_q * per_step_loss_importance_vectors[k+1]
+                        losses_q[k + 1] += loss_q * per_step_loss_importance_vectors[k + 1]
                 else:
                     logits_q = self.net(x_qry[i], fast_weights, bn_training=True)
                     loss_q = F.cross_entropy(logits_q, y_qry[i])
@@ -195,15 +202,19 @@ class Meta(nn.Module):
                     corrects[k + 1] = corrects[k + 1] + correct
 
         # end of all tasks
-        # sum over all losses on query set across all tasks 只用了step中最后一个的损失 取的均值
-        loss_q = sum(losses_q) / task_num
+        if MSL_flag:  # 默认不开启
+            # 原始
+            loss_q = losses_q[-1] / task_num
+        else:
+            # MSL
+            loss_q = sum(losses_q) / (task_num)
 
         # optimize theta parameters
         self.meta_optim.zero_grad()
         loss_q.backward()
         self.meta_optim.step()
         # 测试:余弦退火学习率
-        self.scheduler.step()
+        # self.scheduler.step()
 
         accs = np.array(corrects) / (querysz * task_num)
         loss = np.array(losses_q) / task_num
@@ -223,6 +234,7 @@ class Meta(nn.Module):
         querysz = x_qry.size(0)
 
         corrects = [0 for _ in range(self.update_step_test + 1)]
+        # losses = [0 for _ in range(self.update_step_test + 1)]
 
         # in order to not ruin the state of running_mean/variance and bn_weight/bias
         # we finetunning on the copied model instead of self.net
@@ -276,6 +288,8 @@ class Meta(nn.Module):
         del net
 
         accs = np.array(corrects) / querysz
+        # loss = np.array(loss_q) / querysz
+
 
         return accs
 

@@ -85,8 +85,8 @@ def main():
     ]
     config_inception3 = [  # 参数按照网上的例子来的 格式：[('类型',[参数，参数，…]),()]
         ('conv2d', [10, 3, 5, 5, 1, 0]),
-        ('relu', [True]),
         ('bn', [10]),
+        ('relu', [True]),
         ('max_pool2d', [2, 2, 0]),
 
         # inception 输入为10，与conv1 中的10对应
@@ -104,8 +104,8 @@ def main():
         # inception1结束
         # ————————下一个卷积层————————
         ('conv2d', [20, 88, 5, 5, 1, 0]),
-        ('relu', [True]),
         ('bn', [20]),
+        ('relu', [True]),
         ('max_pool2d', [2, 2, 0]),
 
         # inception2 输入为20，与conv2 中输出的20对应
@@ -122,8 +122,8 @@ def main():
         # __________inception2结束__________
         # ————————下一个卷积层————————
         ('conv2d', [30, 88, 5, 5, 1, 0]),
-        ('relu', [True]),
         ('bn', [30]),
+        ('relu', [True]),
         ('max_pool2d', [2, 2, 0]),
 
         # inception3输入为30，与conv2 中输出的30对应
@@ -142,13 +142,36 @@ def main():
         ('flatten', []),
         ('linear', [args.n_way, 88 * 7 * 7])  # x.shape后三位参数
     ]
-    config_inception2 = [  # 参数按照网上的例子来的 格式：[('类型',[参数，参数，…]),()]
-        ('conv2d', [20, 3, 5, 5, 1, 0]),
-        ('relu', [True]),
-        ('bn', [20]),
+    config_inception_Residual = [  # 参数按照网上的例子来的 格式：[('类型',[参数，参数，…]),()]
+        ('conv2d', [10, 3, 3, 3, 1, 0]),
+        ('bn', [10]),
         ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
 
         # inception 输入为10，与conv1 中的10对应
+        ('branch1x1', [16, 10, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 10, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]), # 核考虑换成3*3
+
+        ('branch3x3_1', [16, 10, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 10, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 10, 1, 1, 1, 0]), # 输入不确定；含一个conv2d 一个bn
+
+        ('relu', [True]),
+
+        # inception1结束
+        # ————————下一个卷积层————————
+        ('conv2d', [20, 88, 3, 3, 1, 0]), #
+        ('bn', [20]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        # inception2 输入为20，与conv2 中输出的20对应
         ('branch1x1', [16, 20, 1, 1, 1, 0]),
 
         ('branch5x5_1', [16, 20, 1, 1, 1, 0]),
@@ -159,15 +182,17 @@ def main():
         ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
 
         ('branch_pool', [24, 20, 1, 1, 1, 0]),
-
-        # inception1结束
-        # ————————下一个卷积层————————
-        ('conv2d', [30, 88, 5, 5, 1, 0]),
+        # 残差项
+        ('downsample', [88, 20, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
         ('relu', [True]),
+        # __________inception2结束__________
+        # ————————下一个卷积层————————
+        ('conv2d', [30, 88, 3, 3, 1, 0]),
         ('bn', [30]),
         ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
 
-        # inception2 输入为20，与conv2 中输出的20对应
+        # inception3输入为30，与conv2 中输出的30对应
         ('branch1x1', [16, 30, 1, 1, 1, 0]),
 
         ('branch5x5_1', [16, 30, 1, 1, 1, 0]),
@@ -178,14 +203,17 @@ def main():
         ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
 
         ('branch_pool', [24, 30, 1, 1, 1, 0]),
-        # __________inception2结束__________
 
+        # 残差项
+        ('downsample', [88, 30, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception3结束__________
         ('flatten', []),
-        ('linear', [args.n_way, 88 * 18 * 18])  # x.shape后三位参数
+        ('linear', [args.n_way, 88 * 8 * 8])  # x.shape后三位参数
     ]
+
     device = torch.device('cuda')
     maml = Meta(args, config).to(device) # 传入网络参数构建 maml网络
-    writer = SummaryWriter()
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -195,52 +223,48 @@ def main():
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
     mini = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented/', mode='train', n_way=args.n_way, k_shot=args.k_spt,
                         k_query=args.k_qry,
-                        batchsz=args.t_batchsz, # 总任务数？10000--5000
+                        batchsz=args.t_batchsz, #
                         resize=args.imgsz)
     mini_test = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented/', mode='test', n_way=args.n_way, k_shot=args.k_spt,
                              k_query=args.k_qry,
                              batchsz=100,
                              resize=args.imgsz)
-
+    writer = SummaryWriter() # tensorboard
     for epoch in range(args.epoch//args.t_batchsz):  #
         print("epoch:",epoch)
-        # fetch meta_batchsz num of episode each time （episode一次选择tesk的过程）
         # db = DataLoader(mini, args.task_num, shuffle=True, num_workers=1, pin_memory=True)
         db = DataLoader(mini, args.task_num, shuffle=True, num_workers=0, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
 
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
             x_spt, y_spt, x_qry, y_qry = x_spt.to(device), y_spt.to(device), x_qry.to(device), y_qry.to(device)
-            accs,loss = maml(x_spt, y_spt, x_qry, y_qry) # 传入的多个任务(共task_num个)
-            # 可视化 （位置重新考虑
-            writer.add_scalar('Loss/train', loss[-1].item(), step)
+            accs,loss = maml(x_spt, y_spt, x_qry, y_qry,args.MSL_flag) # 传入的多个任务(共task_num个)
+            # 可视化
+            writer.add_scalar('train/loss',loss[-1].item(), epoch*(args.t_batchsz//args.task_num)+step)
+            writer.add_scalar('train/acc',accs[-1].item(), epoch*(args.t_batchsz//args.task_num)+step)
 
             if step % 100 == 0:
                 print('step:', step, '\t training acc:', accs)
 
-            if step % 500 == 0:  # evaluation
+            if step % 200 == 0:  # evaluation
                 # db_test = DataLoader(mini_test, 1, shuffle=True, num_workers=1, pin_memory=True)
                 db_test = DataLoader(mini_test, 1, shuffle=True, num_workers=0, pin_memory=True) # 测试 生成可以将所有任务跑一遍的迭代器
-
                 accs_all_test = []
-
                 for x_spt, y_spt, x_qry, y_qry in db_test:
                     x_spt, y_spt, x_qry, y_qry = x_spt.squeeze(0).to(device), y_spt.squeeze(0).to(device), \
                                                  x_qry.squeeze(0).to(device), y_qry.squeeze(0).to(device)
 
-                    accs = maml.finetunning(x_spt, y_spt, x_qry, y_qry) # 在测试中单独调用finetuning 返回精度
-                    accs_all_test.append(accs)
+                    test_accs = maml.finetunning(x_spt, y_spt, x_qry, y_qry) # 在测试中单独调用finetuning 返回精度
+                    accs_all_test.append(test_accs)
 
                 # [b, update_step+1]
                 accs = np.array(accs_all_test).mean(axis=0).astype(np.float16) # 求测试数据的均值
+                writer.add_scalar('test/acc', accs[-1].item(), epoch * (args.t_batchsz // args.task_num) + step)
                 print('Test acc:', accs)
-
-
-
 
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--epoch', type=int, help='epoch number', default=25000)
+    argparser.add_argument('--epoch', type=int, help='epoch number', default=30000)
     argparser.add_argument('--n_way', type=int, help='n way', default=20)
 
     argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1) # default=1
@@ -258,6 +282,7 @@ if __name__ == '__main__':
 
     argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5)
     argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10)
+    argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=False)
 
     args = argparser.parse_args()
 

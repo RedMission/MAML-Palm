@@ -237,7 +237,7 @@ def main():
 
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
             # use_second_order在训练中是否使用二阶导
-            # 前50 false，而后开启
+            # 前50 false
             if step < 500:
                 use_second_order = False
             else:

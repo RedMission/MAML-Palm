@@ -111,7 +111,7 @@ class Meta(nn.Module):
 
         return total_norm/counter
 
-    def forward(self, x_spt, y_spt, x_qry, y_qry,MSL_flag):
+    def forward(self, x_spt, y_spt, x_qry, y_qry,MSL_flag,use_second_order):
         """
         :param x_spt:   [b, setsz, c_, h, w]
         :param y_spt:   [b, setsz]
@@ -127,7 +127,7 @@ class Meta(nn.Module):
 
         if MSL_flag: # 默认不开启
             # without MSL
-            per_step_loss_importance_vectors=np.ones(shape=(self.update_step + 1))
+            per_step_loss_importance_vectors = np.ones(shape=(self.update_step + 1))
         else:
             # MSL
             per_step_loss_importance_vectors = self.get_per_step_loss_importance_vector()  # 每步损失的权重
@@ -137,7 +137,8 @@ class Meta(nn.Module):
             # 1. run the i-th task and compute loss for k=0
             logits = self.net(x_spt[i], vars=None, bn_training=True)
             loss = F.cross_entropy(logits, y_spt[i])
-            grad = torch.autograd.grad(loss, self.net.parameters()) # 通过损失和参数计算梯度
+            # grad = torch.autograd.grad(loss, self.net.parameters()) # 通过损失和参数计算梯度 不保存二阶导
+            grad = torch.autograd.grad(loss, self.net.parameters(),create_graph=use_second_order,allow_unused=True) # 通过损失和参数计算梯度 二阶导
             # 更新权值 做LSLR（待完成）
             fast_weights = list(map(lambda p: p[1] - self.update_lr * p[0], zip(grad, self.net.parameters())))
             # fast_weights = self.inner_loop_optimizer.update_params(names_weights_dict=self.net.parameters(),
@@ -202,7 +203,7 @@ class Meta(nn.Module):
                     corrects[k + 1] = corrects[k + 1] + correct
 
         # end of all tasks
-        if MSL_flag:  # 默认不开启
+        if MSL_flag:
             # 原始
             loss_q = losses_q[-1] / task_num
         else:
@@ -214,7 +215,7 @@ class Meta(nn.Module):
         loss_q.backward()
         self.meta_optim.step()
         # 测试:余弦退火学习率
-        # self.scheduler.step()
+        self.scheduler.step()
 
         accs = np.array(corrects) / (querysz * task_num)
         loss = np.array(losses_q) / task_num

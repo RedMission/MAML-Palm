@@ -18,7 +18,7 @@ def mean_confidence_interval(accs, confidence=0.95):
 
 def main():
 
-    torch.manual_seed(222)
+    torch.manual_seed(222) #设置随机种子后，是每次运行文件的输出结果都一样
     torch.cuda.manual_seed_all(222)
     np.random.seed(222)
 
@@ -213,7 +213,7 @@ def main():
     ]
 
     device = torch.device('cuda')
-    maml = Meta(args, config).to(device) # 传入网络参数构建 maml网络
+    maml = Meta(args, config_inception_Residual).to(device) # 传入网络参数构建 maml网络
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -236,8 +236,15 @@ def main():
         db = DataLoader(mini, args.task_num, shuffle=True, num_workers=0, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
 
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
+            # use_second_order在训练中是否使用二阶导
+            # 前50 false，而后开启
+            if step < 500:
+                use_second_order = False
+            else:
+                use_second_order = True
+
             x_spt, y_spt, x_qry, y_qry = x_spt.to(device), y_spt.to(device), x_qry.to(device), y_qry.to(device)
-            accs,loss = maml(x_spt, y_spt, x_qry, y_qry,args.MSL_flag) # 传入的多个任务(共task_num个)
+            accs,loss = maml(x_spt, y_spt, x_qry, y_qry,args.MSL_flag,use_second_order) # 传入的多个任务(共task_num个)
             # 可视化
             writer.add_scalar('train/loss',loss[-1].item(), epoch*(args.t_batchsz//args.task_num)+step)
             writer.add_scalar('train/acc',accs[-1].item(), epoch*(args.t_batchsz//args.task_num)+step)
@@ -264,7 +271,7 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--epoch', type=int, help='epoch number', default=30000)
+    argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
     argparser.add_argument('--n_way', type=int, help='n way', default=20)
 
     argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1) # default=1
@@ -282,7 +289,7 @@ if __name__ == '__main__':
 
     argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5)
     argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10)
-    argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=False)
+    argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=True)
 
     args = argparser.parse_args()
 

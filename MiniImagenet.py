@@ -60,7 +60,7 @@ class MiniImagenet(Dataset):
                                                  transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
                                                  ])
 
-        self.path = os.path.join(root, 'Left')  # image path
+        self.path = os.path.join(root, 'PolyUROI')  # image path
         csvdata = self.loadCSV(os.path.join(root, mode + '.csv'))  # csv path
         self.data = []
         self.img2label = {}
@@ -109,6 +109,7 @@ class MiniImagenet(Dataset):
             query_x = []
             for cls in selected_cls:
                 # 2. select k_shot + k_query for each class
+                # # print("cls:",cls)
                 # print("len(self.data[cls]):",len(self.data[cls])) #len(self.data[cls]) 太小需要改大
                 selected_imgs_idx = np.random.choice(len(self.data[cls]), self.k_shot + self.k_query, False)
                 np.random.shuffle(selected_imgs_idx)
@@ -149,12 +150,14 @@ class MiniImagenet(Dataset):
         # print('self.img2label[int(item[:3]):',self.img2label[str(int(item[:3]))])
 
         support_y = np.array(
-            [self.img2label[str(int(item[:3]))]  # filename:n0153282900000005.jpg, the first 9 characters treated as label # 改为3
+            # [self.img2label[str(int(item[:3]))]  # filename:n0153282900000005.jpg, the first 9 characters treated as label # 改为3
+            # [self.img2label[str(item[0:4]+item[8])] # 使用字典
+            [self.img2label[str(int(item[6:8]))]  # 使用字典
              for sublist in self.support_x_batch[index] for item in sublist]).astype(np.int32)
 
         flatten_query_x = [os.path.join(self.path, item)
                            for sublist in self.query_x_batch[index] for item in sublist]
-        query_y = np.array([self.img2label[str(int(item[:3]))]
+        query_y = np.array([self.img2label[str(int(item[6:8]))]
                             for sublist in self.query_x_batch[index] for item in sublist]).astype(np.int32)
 
         # print('global:', support_y, query_y)

@@ -221,11 +221,12 @@ def main():
     print('Total trainable tensors:', num)
 
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
-    mini = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented/', mode='train', n_way=args.n_way, k_shot=args.k_spt,
+    # E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented /
+    mini = MiniImagenet('E:\Documents\Matlab_work\DataBase\PolyU', mode='train', n_way=args.n_way, k_shot=args.k_spt,
                         k_query=args.k_qry,
                         batchsz=args.t_batchsz, #
                         resize=args.imgsz)
-    mini_test = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented/', mode='test', n_way=args.n_way, k_shot=args.k_spt,
+    mini_test = MiniImagenet('E:\Documents\Matlab_work\DataBase\PolyU', mode='test', n_way=args.n_way, k_shot=args.k_spt,
                              k_query=args.k_qry,
                              batchsz=100,
                              resize=args.imgsz)
@@ -238,6 +239,7 @@ def main():
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
             # use_second_order在训练中是否使用二阶导
             # 前50 false
+            #
             if step < 500:
                 use_second_order = False
             else:

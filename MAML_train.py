@@ -18,9 +18,13 @@ def mean_confidence_interval(accs, confidence=0.95):
 
 def main():
 
-    torch.manual_seed(222) #设置随机种子后，是每次运行文件的输出结果都一样
-    torch.cuda.manual_seed_all(222)
-    np.random.seed(222)
+    # torch.manual_seed(222) #设置随机种子后，是每次运行文件的输出结果都一样
+    # torch.cuda.manual_seed_all(222)
+    # np.random.seed(222)
+
+    torch.manual_seed(122)  # 设置随机种子后，是每次运行文件的输出结果都一样
+    torch.cuda.manual_seed_all(122)
+    np.random.seed(122)
 
     print(args)
 

@@ -2,17 +2,35 @@ import  torch
 from    torch import nn
 from    torch.nn import functional as F
 
+
+def _make_divisible(v, divisor, min_value=None):
+    """
+    This function is taken from the original tf repo.
+    It ensures that all layers have a channel number that is divisible by 8
+    It can be seen here:
+    https://github.com/tensorflow/models/blob/master/research/slim/nets/mobilenet/mobilenet.py
+    """
+    if min_value is None:
+        min_value = divisor
+    new_v = max(min_value, int(v + divisor / 2) // divisor * divisor)
+    # Make sure that round down does not go down by more than 10%.
+    if new_v < 0.9 * v:
+        new_v += divisor
+    return new_v
+
 class Learner_inception_new(nn.Module):
+
 
     def __init__(self, config):
         super(Learner_inception_new, self).__init__()
-        self.config = config
+        self.config = config # 获取参数列表
         # this dict contains all tensors needed to be optimized
-        self.vars = nn.ParameterList()
+        self.vars = nn.ParameterList() # 新建
         # running_mean and running_var
-        self.vars_bn = nn.ParameterList()
-        for i, (name, param) in enumerate(self.config):
-            if name is 'branch1x1':
+        self.vars_bn = nn.ParameterList() # 新建
+        for i, (name, param) in enumerate(self.config): # 获取列表元组
+            if name in ['branch1x1','branch5x5_1','branch5x5_2','branch3x3_1','branch3x3_2',
+                          'branch3x3_3','branch_pool','conv2d','convt2d','linear']:
                 # [ch_out, ch_in, kernelsz, kernelsz]
                 w = nn.Parameter(torch.ones(*param[:4]))
                 # gain=1 according to cbfin's implementation
@@ -20,54 +38,7 @@ class Learner_inception_new(nn.Module):
                 self.vars.append(w)  # 加入list
                 # [ch_out]
                 self.vars.append(nn.Parameter(torch.zeros(param[0])))
-            elif name is 'branch5x5_1':
-                # [ch_out, ch_in, kernelsz, kernelsz]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
-                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
-                self.vars.append(w)  # 加入list
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
-            elif name is 'branch5x5_2':
-                # [ch_out, ch_in, kernelsz, kernelsz]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
-                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
-                self.vars.append(w)  # 加入list
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
-            elif name is 'branch3x3_1':
-                # [ch_out, ch_in, kernelsz, kernelsz]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
-                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
-                self.vars.append(w)  # 加入list
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
-            elif name is 'branch3x3_2':
-                # [ch_out, ch_in, kernelsz, kernelsz]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
-                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
-                self.vars.append(w)  # 加入list
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
-            elif name is 'branch3x3_3':
-                # [ch_out, ch_in, kernelsz, kernelsz]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
-                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
-                self.vars.append(w)  # 加入list
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
-            elif name is 'branch_pool':
-                # [ch_out, ch_in, kernelsz, kernelsz]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
-                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
-                self.vars.append(w)  # 加入list
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
+
             elif name is 'downsample':
                 w = nn.Parameter(torch.ones(*param[:4]))
                 torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
@@ -80,31 +51,24 @@ class Learner_inception_new(nn.Module):
                 running_mean = nn.Parameter(torch.zeros(param[0]), requires_grad=False)
                 running_var = nn.Parameter(torch.ones(param[0]), requires_grad=False)
                 self.vars_bn.extend([running_mean, running_var])
-
-            elif name is 'conv2d':
-                # [ch_out, ch_in, kernelsz, kernelsz]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
+            elif name is 'SqueezeExcite':
+                in_chs = param[0]
+                se_ratio = 0.25
+                divisor = 4
+                reduced_chs = _make_divisible((in_chs) * se_ratio, divisor)
+                conv_reduce_config = [reduced_chs, in_chs, 1, 1]
+                w = nn.Parameter(torch.ones(conv_reduce_config))
                 torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
                 self.vars.append(w)  # 加入list
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
-            elif name is 'convt2d':
-                # [ch_in, ch_out, kernelsz, kernelsz, stride, padding]
-                w = nn.Parameter(torch.ones(*param[:4]))
-                # gain=1 according to cbfin's implementation
-                torch.nn.init.kaiming_normal_(w)
-                self.vars.append(w)
-                # [ch_in, ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[1])))
-            elif name is 'linear':
-                # [ch_out, ch_in]
-                w = nn.Parameter(torch.ones(*param))
-                # gain=1 according to cbfinn's implementation
-                torch.nn.init.kaiming_normal_(w)
-                self.vars.append(w)
-                # [ch_out]
-                self.vars.append(nn.Parameter(torch.zeros(param[0])))
+                self.vars.append(nn.Parameter(torch.zeros(reduced_chs)))
+
+                conv_expand_config=[in_chs, reduced_chs, 1, 1]
+                w = nn.Parameter(torch.ones(conv_expand_config))
+                torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
+                self.vars.append(w)  # 加入list
+                self.vars.append(nn.Parameter(torch.zeros(in_chs)))
+
+
             elif name is 'bn':
                 # [ch_out]
                 w = nn.Parameter(torch.ones(param[0]))
@@ -178,6 +142,17 @@ class Learner_inception_new(nn.Module):
                 bn_idx += 2
 
                 x = inception_x + residual
+            elif name is 'SqueezeExcite':
+                x_se = nn.AdaptiveAvgPool2d(1)(x)
+                w, b = vars[idx], vars[idx + 1] #取出权重和偏置
+                x_se = F.conv2d(x_se, w, b, stride=1, padding=0) # 放入网络计算
+                idx += 2
+                x_se = F.relu(x_se, inplace=True)
+                w, b = vars[idx], vars[idx + 1] #取出权重和偏置
+                x_se = F.conv2d(x_se, w, b, stride=1, padding=0) # 放入网络计算
+                idx += 2
+                x_se = F.relu6(x_se + 3.) / 6.
+                x = x * x_se
 
             elif name is 'conv2d':
                 w, b = vars[idx], vars[idx + 1] #取出权重和偏置

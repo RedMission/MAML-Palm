@@ -148,6 +148,8 @@ class Meta(nn.Module):
             # this is the loss and accuracy before first update
             with torch.no_grad():
                 # [setsz, nway]
+                # print("x_qry[i].shape:",x_qry[i].shape)
+                # x_qry[i].shape: torch.Size([10, 3, 84, 84])
                 logits_q = self.net(x_qry[i], self.net.parameters(), bn_training=True)
                 loss_q = F.cross_entropy(logits_q, y_qry[i])
                 losses_q[0] += loss_q * per_step_loss_importance_vectors[0]
@@ -214,7 +216,7 @@ class Meta(nn.Module):
         self.meta_optim.zero_grad()
         loss_q.backward()
         self.meta_optim.step()
-        # 测试:余弦退火学习率
+        # 余弦退火学习率
         self.scheduler.step()
 
         accs = np.array(corrects) / (querysz * task_num)

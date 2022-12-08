@@ -48,109 +48,13 @@ def main():
         ('flatten', []),
         ('linear', [args.n_way, 32 * 5 * 5])
     ]
-
-    config_inception = [  # 参数按照网上的例子来的 格式：[('类型',[参数，参数，…]),()]
-        ('conv2d', [10, 3, 5, 5, 1, 0]),
-        ('max_pool2d', [2, 2, 0]),
-        ('relu', [True]),
-
-        # inception 输入为10，与conv1 中的10对应
-        ('branch1x1', [16, 10, 1, 1, 1, 0]),
-
-        ('branch5x5_1', [16, 10, 1, 1, 1, 0]),
-        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
-
-        ('branch3x3_1', [16, 10, 1, 1, 1, 0]),
-        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
-        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
-
-        ('branch_pool', [24, 10, 1, 1, 1, 0]),
-
-        # inception1结束
-        # ————————下一个卷积层————————
-        ('conv2d', [20, 88, 5, 5, 1, 0]),
-        ('max_pool2d', [2, 2, 0]),
-        ('relu', [True]),
-
-        # inception2 输入为20，与conv2 中输出的20对应
-        ('branch1x1', [16, 20, 1, 1, 1, 0]),
-
-        ('branch5x5_1', [16, 20, 1, 1, 1, 0]),
-        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
-
-        ('branch3x3_1', [16, 20, 1, 1, 1, 0]),
-        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
-        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
-
-        ('branch_pool', [24, 20, 1, 1, 1, 0]),
-        # __________inception2结束__________
-        ('flatten', []),
-        ('linear', [args.n_way, 88*18*18]) # x.shape后三位参数
-    ]
-    config_inception3 = [  # 参数按照网上的例子来的 格式：[('类型',[参数，参数，…]),()]
-        ('conv2d', [10, 3, 5, 5, 1, 0]),
-        ('bn', [10]),
-        ('relu', [True]),
-        ('max_pool2d', [2, 2, 0]),
-
-        # inception 输入为10，与conv1 中的10对应
-        ('branch1x1', [16, 10, 1, 1, 1, 0]),
-
-        ('branch5x5_1', [16, 10, 1, 1, 1, 0]),
-        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
-
-        ('branch3x3_1', [16, 10, 1, 1, 1, 0]),
-        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
-        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
-
-        ('branch_pool', [24, 10, 1, 1, 1, 0]),
-
-        # inception1结束
-        # ————————下一个卷积层————————
-        ('conv2d', [20, 88, 5, 5, 1, 0]),
-        ('bn', [20]),
-        ('relu', [True]),
-        ('max_pool2d', [2, 2, 0]),
-
-        # inception2 输入为20，与conv2 中输出的20对应
-        ('branch1x1', [16, 20, 1, 1, 1, 0]),
-
-        ('branch5x5_1', [16, 20, 1, 1, 1, 0]),
-        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
-
-        ('branch3x3_1', [16, 20, 1, 1, 1, 0]),
-        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
-        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
-
-        ('branch_pool', [24, 20, 1, 1, 1, 0]),
-        # __________inception2结束__________
-        # ————————下一个卷积层————————
-        ('conv2d', [30, 88, 5, 5, 1, 0]),
-        ('bn', [30]),
-        ('relu', [True]),
-        ('max_pool2d', [2, 2, 0]),
-
-        # inception3输入为30，与conv2 中输出的30对应
-        ('branch1x1', [16, 30, 1, 1, 1, 0]),
-
-        ('branch5x5_1', [16, 30, 1, 1, 1, 0]),
-        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
-
-        ('branch3x3_1', [16, 30, 1, 1, 1, 0]),
-        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
-        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
-
-        ('branch_pool', [24, 30, 1, 1, 1, 0]),
-        # __________inception3结束__________
-
-        ('flatten', []),
-        ('linear', [args.n_way, 88 * 7 * 7])  # x.shape后三位参数
-    ]
-    config_inception_Residual = [  # 参数按照网上的例子来的 格式：[('类型',[参数，参数，…]),()]
+    config_inception_Residual_se = [  # 格式：[('类型',[参数，参数，…]),()]
         ('conv2d', [10, 3, 3, 3, 1, 0]),
         ('bn', [10]),
         ('max_pool2d', [2, 2, 0]),
         ('relu', [True]),
+        # ————————注意力机制————————
+        ('SqueezeExcite', [10]),
 
         # inception 输入为10，与conv1 中的10对应
         ('branch1x1', [16, 10, 1, 1, 1, 0]),
@@ -175,6 +79,8 @@ def main():
         ('max_pool2d', [2, 2, 0]),
         ('relu', [True]),
 
+        ('SqueezeExcite', [20]),
+
         # inception2 输入为20，与conv2 中输出的20对应
         ('branch1x1', [16, 20, 1, 1, 1, 0]),
 
@@ -195,6 +101,8 @@ def main():
         ('bn', [30]),
         ('max_pool2d', [2, 2, 0]),
         ('relu', [True]),
+
+        ('SqueezeExcite', [30]),
 
         # inception3输入为30，与conv2 中输出的30对应
         ('branch1x1', [16, 30, 1, 1, 1, 0]),
@@ -217,7 +125,7 @@ def main():
     ]
 
     device = torch.device('cuda')
-    maml = Meta(args, config_inception_Residual).to(device) # 传入网络参数构建 maml网络
+    maml = Meta(args, config_inception_Residual_se).to(device) # 传入网络参数构建 maml网络
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -226,11 +134,11 @@ def main():
 
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
     # E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented /
-    mini = MiniImagenet('E:\Documents\Matlab_work\DataBase\PolyU', mode='train', n_way=args.n_way, k_shot=args.k_spt,
+    mini = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented', mode='train', n_way=args.n_way, k_shot=args.k_spt,
                         k_query=args.k_qry,
                         batchsz=args.t_batchsz, #
                         resize=args.imgsz)
-    mini_test = MiniImagenet('E:\Documents\Matlab_work\DataBase\PolyU', mode='test', n_way=args.n_way, k_shot=args.k_spt,
+    mini_test = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented', mode='test', n_way=args.n_way, k_shot=args.k_spt,
                              k_query=args.k_qry,
                              batchsz=100,
                              resize=args.imgsz)
@@ -244,7 +152,8 @@ def main():
             # use_second_order在训练中是否使用二阶导
             # 前50 false
             #
-            if step < 500:
+            use_second_order = False
+            if step < 700:
                 use_second_order = False
             else:
                 use_second_order = True
@@ -278,7 +187,7 @@ if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
-    argparser.add_argument('--n_way', type=int, help='n way', default=20)
+    argparser.add_argument('--n_way', type=int, help='n way', default=5)
 
     argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1) # default=1
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=2) # 原15

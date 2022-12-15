@@ -48,6 +48,76 @@ def main():
         ('flatten', []),
         ('linear', [args.n_way, 32 * 5 * 5])
     ]
+    config_inception_Residual = [  # 格式：[('类型',[参数，参数，…]),()]
+        ('conv2d', [10, 3, 3, 3, 1, 0]),
+        ('bn', [10]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        # inception 输入为10，与conv1 中的10对应
+        ('branch1x1', [16, 10, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 10, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]), # 核考虑换成3*3
+
+        ('branch3x3_1', [16, 10, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 10, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 10, 1, 1, 1, 0]), # 输入不确定；含一个conv2d 一个bn
+
+        ('relu', [True]),
+
+        # inception1结束
+        # ————————下一个卷积层————————
+        ('conv2d', [20, 88, 3, 3, 1, 0]), #
+        ('bn', [20]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        # inception2 输入为20，与conv2 中输出的20对应
+        ('branch1x1', [16, 20, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 20, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 20, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 20, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 20, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception2结束__________
+        # ————————下一个卷积层————————
+        ('conv2d', [30, 88, 3, 3, 1, 0]),
+        ('bn', [30]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        # inception3输入为30，与conv2 中输出的30对应
+        ('branch1x1', [16, 30, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 30, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 30, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 30, 1, 1, 1, 0]),
+
+        # 残差项
+        ('downsample', [88, 30, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception3结束__________
+        ('flatten', []),
+        ('linear', [args.n_way, 88 * 8 * 8])  # x.shape后三位参数
+    ]
+
     config_inception_Residual_se = [  # 格式：[('类型',[参数，参数，…]),()]
         ('conv2d', [10, 3, 3, 3, 1, 0]),
         ('bn', [10]),
@@ -125,7 +195,7 @@ def main():
     ]
 
     device = torch.device('cuda')
-    maml = Meta(args, config_inception_Residual_se).to(device) # 传入网络参数构建 maml网络
+    maml = Meta(args, config_inception_Residual).to(device) # 传入网络参数构建 maml网络
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -189,7 +259,7 @@ if __name__ == '__main__':
     argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
     argparser.add_argument('--n_way', type=int, help='n way', default=5)
 
-    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1) # default=1
+    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=3) # default=1
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=2) # 原15
     argparser.add_argument('--t_batchsz', type=int, help='train-batchsz', default=5000)
 

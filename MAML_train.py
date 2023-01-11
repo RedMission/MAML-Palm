@@ -117,7 +117,6 @@ def main():
         ('flatten', []),
         ('linear', [args.n_way, 88 * 8 * 8])  # x.shape后三位参数
     ]
-
     config_inception_Residual_se = [  # 格式：[('类型',[参数，参数，…]),()]
         ('conv2d', [10, 3, 3, 3, 1, 0]),
         ('bn', [10]),
@@ -194,7 +193,7 @@ def main():
         ('linear', [args.n_way, 88 * 8 * 8])  # x.shape后三位参数
     ]
 
-    device = torch.device('cuda')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     maml = Meta(args, config_inception_Residual).to(device) # 传入网络参数构建 maml网络
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())

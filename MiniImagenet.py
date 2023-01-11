@@ -46,6 +46,7 @@ class MiniImagenet(Dataset):
         mode, batchsz, n_way, k_shot, k_query, resize))
 
         if mode == 'train':
+            self.path = os.path.join(root, 'Left')  # image path
             self.transform = transforms.Compose([lambda x: Image.open(x).convert('RGB'),
                                                  transforms.Resize((self.resize, self.resize)),
                                                  # transforms.RandomHorizontalFlip(),
@@ -54,13 +55,13 @@ class MiniImagenet(Dataset):
                                                  transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
                                                  ])
         else:
+            self.path = os.path.join(root, 'Right')  # image path
             self.transform = transforms.Compose([lambda x: Image.open(x).convert('RGB'),
                                                  transforms.Resize((self.resize, self.resize)),
                                                  transforms.ToTensor(),
                                                  transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
                                                  ])
 
-        self.path = os.path.join(root, 'Left')  # image path
         csvdata = self.loadCSV(os.path.join(root, mode + '.csv'))  # csv path
         self.data = []
         self.img2label = {}

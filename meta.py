@@ -220,7 +220,7 @@ class Meta(nn.Module):
         self.scheduler.step()
 
         accs = np.array(corrects) / (querysz * task_num)
-        loss = np.array(losses_q) / task_num
+        loss = np.array([i.detach() for i in losses_q]) / task_num
         # loss是一个张量的列表
         return accs,loss
 

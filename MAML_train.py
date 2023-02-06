@@ -1,14 +1,12 @@
-import  torch, os
+import  torch
 import  numpy as np
-from    MiniImagenet import MiniImagenet
 import  scipy.stats
 from    torch.utils.data import DataLoader
-from    torch.optim import lr_scheduler
-import  random, sys, pickle
 import  argparse
-
 from meta import Meta # 网络
 from torch.utils.tensorboard import SummaryWriter
+from npydataset import NpyDataset
+
 
 def mean_confidence_interval(accs, confidence=0.95):
     n = accs.shape[0]
@@ -202,15 +200,18 @@ def main():
     print('Total trainable tensors:', num)
 
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
-    # E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented /
-    mini = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented', mode='train', n_way=args.n_way, k_shot=args.k_spt,
+    mini = NpyDataset(root = 'E:\Jupyter Notebook\DAGAN\datasets\IITDdata_left_3.npy',
+                      mode='train', n_way=args.n_way,
+                        k_shot=args.k_spt,
                         k_query=args.k_qry,
-                        batchsz=args.t_batchsz, #
+                        batchsz=args.t_batchsz,  #
                         resize=args.imgsz)
-    mini_test = MiniImagenet('E:\Documents\Matlab_work\DataBase\IITD Palmprint V1\Segmented', mode='test', n_way=args.n_way, k_shot=args.k_spt,
+    mini_test = NpyDataset('E:\Jupyter Notebook\DAGAN\datasets\IITDdata_right_3.npy', mode='test',
+                             n_way=args.n_way, k_shot=args.k_spt,
                              k_query=args.k_qry,
                              batchsz=100,
                              resize=args.imgsz)
+
     writer = SummaryWriter() # tensorboard
     for epoch in range(args.epoch//args.t_batchsz):  #
         print("epoch:",epoch)
@@ -262,7 +263,7 @@ if __name__ == '__main__':
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=2) # 原15
     argparser.add_argument('--t_batchsz', type=int, help='train-batchsz', default=5000)
 
-    argparser.add_argument('--imgsz', type=int, help='imgsz', default=84) # 图像尺寸
+    argparser.add_argument('--imgsz', type=int, help='imgsz', default=84) # 调节的图像尺寸
     argparser.add_argument('--imgc', type=int, help='imgc', default=3)
     argparser.add_argument('--task_num', type=int, help='meta batch size, namely task num', default=5)
     argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-3)

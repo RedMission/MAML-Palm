@@ -18,11 +18,18 @@ class NpyDataset(Dataset):
         self.querysz = self.n_way * self.k_query  # number of samples per set for evaluation
         self.resize = resize  # resize to
 
-        self.transform = transforms.Compose([lambda x:self.render_img(x),
-                                     transforms.Resize((84, 84)),
-                                     transforms.ToTensor(),
-                                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-                                     ])
+        # self.transform = transforms.Compose([lambda x:self.render_img(x), # lambda导致无法序列化
+        #                              transforms.Resize((84, 84)),
+        #                              transforms.ToTensor(),
+        #                              transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+        #                              ])
+        self.transform = transforms.Compose([self.render_transform,
+                                             # transforms.ToPILImage(),
+                                             transforms.Resize((84, 84)),
+                                             transforms.ToTensor(),
+                                             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+                                             ])
+
         # 读入数据集合array [class_num, pre_class, imgsize, imgsize, c]
         self.raw_data = np.load(root, allow_pickle=True).copy()
         self.cls_num = self.raw_data.shape[0]
@@ -42,6 +49,10 @@ class NpyDataset(Dataset):
         # 转换格式为PIL.Image.Image mode='RGB'
         img = Image.fromarray(np.squeeze(arr), mode='L').convert('RGB')
         return img
+
+    def render_transform(self, x):
+        return self.render_img(x)
+
     def create_batch(self, batchsz):
 
         self.support_x_batch = []  # support set batch

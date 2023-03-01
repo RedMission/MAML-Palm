@@ -192,7 +192,7 @@ def main():
     ]
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    maml = Meta(args, config_inception_Residual).to(device) # 传入网络参数构建 maml网络
+    maml = Meta(args, config).to(device) # 传入网络参数构建 maml网络
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -200,13 +200,13 @@ def main():
     print('Total trainable tensors:', num)
 
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
-    mini = NpyDataset(root = 'E:\Jupyter Notebook\DAGAN\datasets\IITDdata_left_3.npy',
+    train_data = NpyDataset(root = args.train_data,
                       mode='train', n_way=args.n_way,
                         k_shot=args.k_spt,
                         k_query=args.k_qry,
                         batchsz=args.t_batchsz,  #
                         resize=args.imgsz)
-    mini_test = NpyDataset('E:\Jupyter Notebook\DAGAN\datasets\IITDdata_right_3.npy', mode='test',
+    test_data = NpyDataset(root = args.test_data, mode='test',
                              n_way=args.n_way, k_shot=args.k_spt,
                              k_query=args.k_qry,
                              batchsz=100,
@@ -215,18 +215,17 @@ def main():
     writer = SummaryWriter() # tensorboard
     for epoch in range(args.epoch//args.t_batchsz):  #
         print("epoch:",epoch)
-        # db = DataLoader(mini, args.task_num, shuffle=True, num_workers=1, pin_memory=True)
-        db = DataLoader(mini, args.task_num, shuffle=True, num_workers=0, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
+        # db = DataLoader(train_data, args.task_num, shuffle=True, num_workers=1, pin_memory=True)
+        db = DataLoader(train_data, args.task_num, shuffle=True, num_workers=4, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
 
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
             # use_second_order在训练中是否使用二阶导
             # 前50 false
-            #
             use_second_order = False
-            if step < 700:
-                use_second_order = False
-            else:
-                use_second_order = True
+            # if step < 700:
+            #     use_second_order = False
+            # else:
+            #     use_second_order = True
 
             x_spt, y_spt, x_qry, y_qry = x_spt.to(device), y_spt.to(device), x_qry.to(device), y_qry.to(device)
             accs,loss = maml(x_spt, y_spt, x_qry, y_qry,args.MSL_flag,use_second_order) # 传入的多个任务(共task_num个)
@@ -238,8 +237,8 @@ def main():
                 print('step:', step, '\t training acc:', accs)
 
             if step % 200 == 0:  # evaluation
-                # db_test = DataLoader(mini_test, 1, shuffle=True, num_workers=1, pin_memory=True)
-                db_test = DataLoader(mini_test, 1, shuffle=True, num_workers=0, pin_memory=True) # 测试 生成可以将所有任务跑一遍的迭代器
+                # db_test = DataLoader(test_data, 1, shuffle=True, num_workers=1, pin_memory=True)
+                db_test = DataLoader(test_data, 1, shuffle=True, num_workers=4, pin_memory=True) # 测试 生成可以将所有任务跑一遍的迭代器
                 accs_all_test = []
                 for x_spt, y_spt, x_qry, y_qry in db_test:
                     x_spt, y_spt, x_qry, y_qry = x_spt.squeeze(0).to(device), y_spt.squeeze(0).to(device), \
@@ -256,6 +255,9 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
+    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left_6.npy')
+    argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy')
+
     argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
     argparser.add_argument('--n_way', type=int, help='n way', default=5)
 
@@ -274,7 +276,7 @@ if __name__ == '__main__':
 
     argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5)
     argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10)
-    argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=True)
+    argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=False)
 
     args = argparser.parse_args()
 

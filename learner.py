@@ -5,7 +5,7 @@ import  numpy as np
 
 class Learner(nn.Module):
     """
-
+    原始项目网络结构构造类，弃用
     """
 
     def __init__(self, config):

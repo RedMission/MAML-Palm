@@ -18,11 +18,6 @@ class NpyDataset(Dataset):
         self.querysz = self.n_way * self.k_query  # number of samples per set for evaluation
         self.resize = resize  # resize to
 
-        # self.transform = transforms.Compose([lambda x:self.render_img(x), # lambda导致无法序列化
-        #                              transforms.Resize((84, 84)),
-        #                              transforms.ToTensor(),
-        #                              transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-        #                              ])
         self.transform = transforms.Compose([self.render_transform,
                                              # transforms.ToPILImage(),
                                              transforms.Resize((84, 84)),
@@ -54,7 +49,6 @@ class NpyDataset(Dataset):
         return self.render_img(x)
 
     def create_batch(self, batchsz):
-
         self.support_x_batch = []  # support set batch
         self.query_x_batch = []  # query set batch
         for b in range(batchsz):  # for each batch
@@ -114,4 +108,26 @@ class NpyDataset(Dataset):
         return self.batchsz
 
 if __name__ == '__main__':
-    np.random.choice([2,9], 6, False)
+    # np.random.choice([2,9], 6, False)
+    import time
+    import torch
+
+    print(torch.__version__)
+    print(torch.cuda.is_available())
+    # 测试gpu计算耗时
+    A = torch.ones(5000, 5000).to('cuda')
+    B = torch.ones(5000, 5000).to('cuda')
+    startTime2 = time.time()
+    for i in range(10000):
+        C = torch.matmul(A, B)
+    endTime2 = time.time()
+    print('gpu计算总时长:', round((endTime2 - startTime2) * 1000, 2), 'ms')
+
+    # 测试cpu计算耗时
+    A = torch.ones(5000, 5000)
+    B = torch.ones(5000, 5000)
+    startTime1 = time.time()
+    for i in range(100):
+        C = torch.matmul(A, B)
+    endTime1 = time.time()
+    print('cpu计算总时长:', round((endTime1 - startTime1) * 1000, 2), 'ms')

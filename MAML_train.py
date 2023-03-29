@@ -216,7 +216,7 @@ def main():
     for epoch in range(args.epoch//args.t_batchsz):  #
         print("epoch:",epoch)
         # db = DataLoader(train_data, args.task_num, shuffle=True, num_workers=1, pin_memory=True)
-        db = DataLoader(train_data, args.task_num, shuffle=True, num_workers=4, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
+        db = DataLoader(train_data, args.task_num, shuffle=True, num_workers=2, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
 
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
             # use_second_order在训练中是否使用二阶导
@@ -233,12 +233,12 @@ def main():
             writer.add_scalar('train/loss',loss[-1].item(), epoch*(args.t_batchsz//args.task_num)+step)
             writer.add_scalar('train/acc',accs[-1].item(), epoch*(args.t_batchsz//args.task_num)+step)
 
-            if step % 100 == 0:
+            if step % 200 == 0:
                 print('step:', step, '\t training acc:', accs)
 
             if step % 200 == 0:  # evaluation
                 # db_test = DataLoader(test_data, 1, shuffle=True, num_workers=1, pin_memory=True)
-                db_test = DataLoader(test_data, 1, shuffle=True, num_workers=4, pin_memory=True) # 测试 生成可以将所有任务跑一遍的迭代器
+                db_test = DataLoader(test_data, 1, shuffle=True, num_workers=2, pin_memory=True) # 测试 生成可以将所有任务跑一遍的迭代器
                 accs_all_test = []
                 for x_spt, y_spt, x_qry, y_qry in db_test:
                     x_spt, y_spt, x_qry, y_qry = x_spt.squeeze(0).to(device), y_spt.squeeze(0).to(device), \
@@ -255,7 +255,7 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left_6.npy')
+    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\Pytorch_GANs\datasets\IITDdata_left_DCGAN_6.npy')
     argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy')
 
     argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)

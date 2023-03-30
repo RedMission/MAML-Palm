@@ -255,7 +255,7 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\Pytorch_GANs\datasets\IITDdata_left_DCGAN_6.npy')
+    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\Pytorch_GANs\datasets\IITDdata_left_WGAN_6.npy')
     argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy')
 
     argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)

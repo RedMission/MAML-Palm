@@ -135,6 +135,7 @@ class Meta(nn.Module):
         for i in range(task_num):
 
             # 1. run the i-th task and compute loss for k=0
+            # print(x_spt[i].shape) # (30,3,84,84)
             logits = self.net(x_spt[i], vars=None, bn_training=True)
             loss = F.cross_entropy(logits, y_spt[i])
             # grad = torch.autograd.grad(loss, self.net.parameters()) # 通过损失和参数计算梯度 不保存二阶导
@@ -156,7 +157,7 @@ class Meta(nn.Module):
 
 
                 pred_q = F.softmax(logits_q, dim=1).argmax(dim=1)
-                correct = torch.eq(pred_q, y_qry[i]).sum().item()
+                correct = torch.eq(pred_q, y_qry[i]).sum().item() # 可以考虑改进F1 score
                 corrects[0] = corrects[0] + correct
 
             # this is the loss and accuracy after the first update
@@ -219,7 +220,7 @@ class Meta(nn.Module):
         # 余弦退火学习率
         # self.scheduler.step()
 
-        accs = np.array(corrects) / (querysz * task_num)
+        accs = np.array(corrects) / (querysz * task_num) # 可以考虑改进F1 score
         loss = np.array([i.detach() for i in losses_q]) / task_num
         # loss是一个张量的列表
         return accs,loss

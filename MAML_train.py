@@ -1,3 +1,5 @@
+import time
+
 import  torch
 import  numpy as np
 import  scipy.stats
@@ -236,7 +238,7 @@ def main():
             if step % 200 == 0:
                 print('step:', step, '\t training acc:', accs)
 
-            if step % 200 == 0:  # evaluation
+                # evaluation
                 # db_test = DataLoader(test_data, 1, shuffle=True, num_workers=1, pin_memory=True)
                 db_test = DataLoader(test_data, 1, shuffle=True, num_workers=2, pin_memory=True) # 测试 生成可以将所有任务跑一遍的迭代器
                 accs_all_test = []
@@ -252,13 +254,17 @@ def main():
                 writer.add_scalar('test/acc', accs[-1].item(), epoch * (args.t_batchsz // args.task_num) + step)
                 print('Test acc:', accs)
 
+    # Save final generator model 保存训练好的模型
+    torch.save(maml.net.state_dict(), "F:\jupyter_notebook\MAML-Palm\model_path/"+time.strftime("%Y%m%d-%H%M",time.localtime())+".pth")
+
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left.npy')
     argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\PolyUROI.npy')
 
-    argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
+    # argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
+    argparser.add_argument('--epoch', type=int, help='epoch number', default=5000)
     argparser.add_argument('--n_way', type=int, help='n way', default=10)
 
     argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=3) # default=1
@@ -267,7 +273,7 @@ if __name__ == '__main__':
 
     argparser.add_argument('--imgsz', type=int, help='imgsz', default=84) # 调节的图像尺寸
     argparser.add_argument('--imgc', type=int, help='imgc', default=3)
-    argparser.add_argument('--task_num', type=int, help='meta batch size, namely task num', default=5)
+    argparser.add_argument('--task_num', type=int, help='meta batch size, namely task num', default=6)
     argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-3)
     # argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-5)
 

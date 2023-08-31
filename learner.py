@@ -7,7 +7,6 @@ class Learner(nn.Module):
     """
     原始项目网络结构构造类，弃用
     """
-
     def __init__(self, config):
         """
         :param config: network config file, type:list of (string, list)
@@ -69,6 +68,7 @@ class Learner(nn.Module):
                 continue
             else:
                 raise NotImplementedError
+
 
     def extra_repr(self):
         info = ''

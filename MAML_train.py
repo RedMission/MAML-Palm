@@ -194,7 +194,7 @@ def main():
     ]
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    maml = Meta(args, config).to(device) # 传入网络参数构建 maml网络
+    maml = Meta(args, config_inception_Residual_se).to(device) # 传入网络参数构建 maml网络
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -261,7 +261,7 @@ if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
     argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left.npy')
-    argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\PolyUROI.npy')
+    argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy')
 
     # argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
     argparser.add_argument('--epoch', type=int, help='epoch number', default=5000)

@@ -1,9 +1,10 @@
 import torch
-from meta import Meta # 网络
-from learner import Learner
+
+from learner_inception_new import Learner_inception_new
 
 if __name__ == '__main__':
-    config = [
+    # 创建一个与保存的模型结构相似的实例【没有输出类别的层】
+    new_config = [
         ('conv2d', [32, 3, 3, 3, 1, 0]),
         ('relu', [True]),
         ('bn', [32]),
@@ -21,18 +22,97 @@ if __name__ == '__main__':
         ('bn', [32]),
         ('max_pool2d', [2, 1, 0]),
         ('flatten', []),
-        ('linear', [10, 32 * 5 * 5])
+        # ('linear', [10, 32 * 5 * 5])
     ]
+    config_inception_Residual_se = [  # 格式：[('类型',[参数，参数，…]),()]
+        ('conv2d', [10, 3, 3, 3, 1, 0]),
+        ('bn', [10]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+        # ————————注意力机制————————
+        ('SqueezeExcite', [10]),
+
+        # inception 输入为10，与conv1 中的10对应
+        ('branch1x1', [16, 10, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 10, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),  # 核考虑换成3*3
+
+        ('branch3x3_1', [16, 10, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 10, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 10, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+
+        ('relu', [True]),
+
+        # inception1结束
+        # ————————下一个卷积层————————
+        ('conv2d', [20, 88, 3, 3, 1, 0]),  #
+        ('bn', [20]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [20]),
+
+        # inception2 输入为20，与conv2 中输出的20对应
+        ('branch1x1', [16, 20, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 20, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 20, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 20, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 20, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception2结束__________
+        # ————————下一个卷积层————————
+        ('conv2d', [30, 88, 3, 3, 1, 0]),
+        ('bn', [30]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [30]),
+
+        # inception3输入为30，与conv2 中输出的30对应
+        ('branch1x1', [16, 30, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 30, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 30, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 30, 1, 1, 1, 0]),
+
+        # 残差项
+        ('downsample', [88, 30, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception3结束__________
+        ('flatten', []),
+        # ('linear', [10, 88 * 8 * 8])  # x.shape后三位参数
+    ]
+    loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载训练好的模型
-    model_name = "20230831-2025.pth"
-    # 创建一个与保存的模型结构相同的实例
-    loaded_model = Learner(config)  # 项目原始网络
+    model_name = "20230903-1047.pth"
     # 加载保存的模型参数
-    loaded_model.load_state_dict(torch.load("model_path/" + model_name))
+    state_dict  = torch.load("model_path/" + model_name)
+    # print(state_dict .keys())  # 打印检查点文件中的所有键
+
+    loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
+    # print(loaded_model)
+
     loaded_model.to('cuda')
     loaded_model.eval()
-
     z = torch.randn((1,3,84,84)).to('cuda')
     logits = loaded_model(z, vars=None, bn_training=True)
+    print(logits.shape)
     print(logits)

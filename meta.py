@@ -31,8 +31,8 @@ class Meta(nn.Module):
         self.current_epoch = 0
         self.total_epoch = args.epoch
 
-        self.net = Learner(config) # 项目原始网络
-        # self.net = Learner_inception_new(config) #改为inception模块构成的网络
+        # self.net = Learner(config) # 项目原始网络
+        self.net = Learner_inception_new(config) #改为inception模块构成的网络
         # 外循环优化器
         self.meta_optim  = optim.RMSprop(self.net.parameters(), lr=self.meta_lr, alpha=0.9)
         # self.meta_optim = optim.Adam(self.net.parameters(), lr=self.meta_lr) # parameters已被重写

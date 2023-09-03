@@ -19,8 +19,6 @@ def _make_divisible(v, divisor, min_value=None):
     return new_v
 
 class Learner_inception_new(nn.Module):
-
-
     def __init__(self, config):
         super(Learner_inception_new, self).__init__()
         self.config = config # 获取参数列表
@@ -67,7 +65,6 @@ class Learner_inception_new(nn.Module):
                 torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
                 self.vars.append(w)  # 加入list
                 self.vars.append(nn.Parameter(torch.zeros(in_chs)))
-
 
             elif name is 'bn':
                 # [ch_out]

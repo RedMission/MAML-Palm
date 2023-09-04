@@ -1,8 +1,24 @@
+import numpy as np
 import torch
 
 from learner_inception_new import Learner_inception_new
+from dataloader import modeldataloader, normaldataloader
+
+def match(unknowdata, model):
+    return
+
+def cossimiliarity(a,b):
+    # 计算余弦相似度
+    dot_product = np.dot(a, b)
+    norm_sample = np.linalg.norm(a)
+    norm_template = np.linalg.norm(b)
+    similarity = dot_product / (norm_sample * norm_template)
+    return similarity
 
 if __name__ == '__main__':
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu')
+
     # 创建一个与保存的模型结构相似的实例【没有输出类别的层】
     new_config = [
         ('conv2d', [32, 3, 3, 3, 1, 0]),
@@ -102,17 +118,41 @@ if __name__ == '__main__':
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载训练好的模型
-    model_name = "20230903-1047.pth"
+    model_name = "model_path/new_config/20230904-1239.pth"
     # 加载保存的模型参数
-    state_dict  = torch.load("model_path/" + model_name)
-    # print(state_dict .keys())  # 打印检查点文件中的所有键
-
+    state_dict  = torch.load(model_name)
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
     # print(loaded_model)
-
-    loaded_model.to('cuda')
+    loaded_model.to(device)
     loaded_model.eval()
-    z = torch.randn((1,3,84,84)).to('cuda')
-    logits = loaded_model(z, vars=None, bn_training=True)
-    print(logits.shape)
-    print(logits)
+    # 加载模板数据
+    raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
+    model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=False, batch_size=1)
+    # 计算模板
+    model = []
+    for i,item  in enumerate(model_dataloader): # 每个类别下随机取一张作为注册模板向量
+        model_data, model_label = item
+        model_i = loaded_model(model_data.to(device), vars=None, bn_training=True)
+        model.append(model_i.detach().numpy().reshape(-1))
+
+    # 加载待检测数据
+    raw_unknowdata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy",
+                       allow_pickle=True).copy()  # numpy.ndarray
+    unknow_dataloader = normaldataloader(raw_data=raw_unknowdata, num_of_classes=200, shuffle=True,
+                                         batch_size=1)
+    count = 0
+    for i,item  in enumerate(unknow_dataloader):
+        unknow_data, unknow_label = item
+        vector = loaded_model(unknow_data.to(device), vars=None, bn_training=True)
+        unknow_data, unknow_label=vector.detach().numpy().reshape(-1), unknow_label.item()
+        print("-------")
+        print("真实:",unknow_label)
+        tmp = []
+        for model_i in model:
+            tmp.append(cossimiliarity(unknow_data,model_i))
+        log = tmp.index(max(tmp))
+        print("预测:",log)
+        if unknow_label == log:
+            count += 1
+
+    print(count)

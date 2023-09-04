@@ -194,7 +194,8 @@ def main():
     ]
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    maml = Meta(args, config_inception_Residual_se).to(device) # 传入网络参数构建 maml网络
+    # 传入网络参数构建 maml网络
+    maml = Meta(args, config).to(device)
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -221,7 +222,7 @@ def main():
         db = DataLoader(train_data, args.task_num, shuffle=True, num_workers=2, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
 
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
-            # use_second_order在训练中是否使用二阶导
+            # DA 导数退火 use_second_order在训练中是否使用二阶导
             # 前50 false
             use_second_order = False
             # if step < 700:
@@ -260,14 +261,14 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left.npy')
+    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left_PSA_2+MC+SC+W_6.npy')
     argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy')
 
     # argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
-    argparser.add_argument('--epoch', type=int, help='epoch number', default=5000)
-    argparser.add_argument('--n_way', type=int, help='n way', default=10)
+    argparser.add_argument('--epoch', type=int, help='epoch number', default=35000)
+    argparser.add_argument('--n_way', type=int, help='n way', default=5)
 
-    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=3) # default=1
+    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1) # default=1
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=2) # 原15
     argparser.add_argument('--t_batchsz', type=int, help='train-batchsz', default=5000)
 
@@ -282,6 +283,7 @@ if __name__ == '__main__':
 
     argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5)
     argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10)
+    # MSL 多步损失
     argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=False)
 
     args = argparser.parse_args()

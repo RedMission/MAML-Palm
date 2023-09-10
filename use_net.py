@@ -1,5 +1,8 @@
+import time
+
 import numpy as np
 import torch
+from  torch import nn
 
 from learner_inception_new import Learner_inception_new
 from dataloader import modeldataloader, normaldataloader
@@ -20,7 +23,7 @@ if __name__ == '__main__':
     device = torch.device('cpu')
 
     # 创建一个与保存的模型结构相似的实例【没有输出类别的层】
-    new_config = [
+    net_config = [
         ('conv2d', [32, 3, 3, 3, 1, 0]),
         ('relu', [True]),
         ('bn', [32]),
@@ -113,18 +116,19 @@ if __name__ == '__main__':
         ('relu', [True]),
         # __________inception3结束__________
         ('flatten', []),
-        # ('linear', [10, 88 * 8 * 8])  # x.shape后三位参数
+        # ('linear', [5, 88 * 8 * 8])  # x.shape后三位参数
     ]
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
-    # 加载训练好的模型
-    model_name = "model_path/new_config/20230904-1239.pth"
     # 加载保存的模型参数
+    model_name = "model_path/20230910-1814.pth"
     state_dict  = torch.load(model_name)
+
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
-    # print(loaded_model)
+    # print(loaded_model.vars)
     loaded_model.to(device)
     loaded_model.eval()
+
     # 加载模板数据
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
     model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=False, batch_size=1)
@@ -154,5 +158,7 @@ if __name__ == '__main__':
         print("预测:",log)
         if unknow_label == log:
             count += 1
-
     print(count)
+
+
+

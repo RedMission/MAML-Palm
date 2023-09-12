@@ -7,7 +7,7 @@ from    torch.utils.data import DataLoader
 import  argparse
 from meta import Meta # 网络
 from torch.utils.tensorboard import SummaryWriter
-from npydataset import NpyDataset
+from mamldataset import MamlDataset
 
 
 def mean_confidence_interval(accs, confidence=0.95):
@@ -203,17 +203,17 @@ def main():
     print('Total trainable tensors:', num)
 
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
-    train_data = NpyDataset(root = args.train_data,
-                      mode='train', n_way=args.n_way,
-                        k_shot=args.k_spt,
-                        k_query=args.k_qry,
-                        batchsz=args.t_batchsz,  #
-                        resize=args.imgsz)
-    test_data = NpyDataset(root = args.test_data, mode='test',
-                             n_way=args.n_way, k_shot=args.k_spt,
+    train_data = MamlDataset(root = args.train_data,
+                             mode='train', n_way=args.n_way,
+                             k_shot=args.k_spt,
                              k_query=args.k_qry,
-                             batchsz=100,
+                             batchsz=args.t_batchsz,  #
                              resize=args.imgsz)
+    test_data = MamlDataset(root = args.test_data, mode='test',
+                            n_way=args.n_way, k_shot=args.k_spt,
+                            k_query=args.k_qry,
+                            batchsz=100,
+                            resize=args.imgsz)
 
     writer = SummaryWriter() # tensorboard
     for epoch in range(args.epoch//args.t_batchsz):  #

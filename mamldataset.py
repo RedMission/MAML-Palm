@@ -8,7 +8,7 @@ import random
 '''
 修改为根据npy array矩阵生成元学习数据
 '''
-class NpyDataset(Dataset):
+class MamlDataset(Dataset):
     def __init__(self, root, mode, batchsz, n_way, k_shot, k_query, resize):
         self.batchsz = batchsz  # batch of set, not batch of imgs
         self.n_way = n_way  # n-way
@@ -89,7 +89,7 @@ class NpyDataset(Dataset):
         query_y = np.array([item[0] for sublist in self.query_x_batch[index] for item in sublist]).astype(np.int32)
         unique = np.unique(support_y)
         random.shuffle(unique)
-        # relative means the label ranges from 0 to n-way
+        # relative means the label ranges from 0 to n-way （需要修改为不使用相对标签
         support_y_relative = np.zeros(self.setsz)
         query_y_relative = np.zeros(self.querysz)
         for idx, l in enumerate(unique):  # 作用是？
@@ -102,7 +102,7 @@ class NpyDataset(Dataset):
 
         for i,index in enumerate(flatten_query_x):
             query_x[i] = self.transform(self.raw_data[index[0]][index[1]])
-        return support_x, torch.LongTensor(support_y_relative), query_x, torch.LongTensor(query_y_relative)
+        return support_x, torch.LongTensor(support_y), query_x, torch.LongTensor(query_y)
 
     def __len__(self):
         return self.batchsz

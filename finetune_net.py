@@ -127,9 +127,9 @@ if __name__ == '__main__':
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
-    # print(loaded_model.vars)
+
     # loaded_model.to(device)
-    # loaded_model.eval()
+    loaded_model.eval()
     '''
 
 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     print(count)
 
     '''
-    #
+    ###### 修稿输出层
     # 新任务的类别数
     num_classes = 230
 
@@ -180,7 +180,7 @@ if __name__ == '__main__':
 
     # 定义损失函数和优化器
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.RMSprop(loaded_model.parameters(), lr=0.1, alpha=0.9)
+    optimizer = torch.optim.RMSprop(loaded_model.parameters(), lr=0.001, alpha=0.9)
     # 加载微调数据
     # 加载模板数据
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy",
@@ -191,19 +191,19 @@ if __name__ == '__main__':
     timestr = time.strftime('%Y%m%d_%H%M')
     writer = SummaryWriter('finetune_logs/'+timestr) # tensorboard
 
-    for epoch in range(500):
+    for epoch in range(20):
         print("---------",epoch)
         for batch_idx, (images, labels) in enumerate(model_dataloader):
             optimizer.zero_grad()
             outputs = loaded_model(images)
-            print("outputs:",outputs)
+            # print("outputs:",outputs)
+            print("labels:",labels)
             pred = F.softmax(outputs, dim=1).argmax(dim=1)
             print("pred:",pred)
             loss = criterion(outputs, labels)
-            aaa = criterion(pred, labels)
             print(loss.item())
             writer.add_scalar('finetune-train/loss',loss.item(), epoch*model_dataloader.__len__()+batch_idx)
             loss.backward()
             optimizer.step()
-    torch.save(loaded_model.state_dict(), "F:\jupyter_notebook\MAML-Palm\model_path/"+time.strftime("%Y%m%d-%H%M",time.localtime())+".pth")
+    torch.save(loaded_model.state_dict(), "F:\jupyter_notebook\MAML-Palm\model_path/finetunemodel/"+time.strftime("%Y%m%d-%H%M",time.localtime())+".pth")
 

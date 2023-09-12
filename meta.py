@@ -217,7 +217,7 @@ class Meta(nn.Module):
         loss_q.backward()
         self.meta_optim.step()
         #  CA 余弦退火学习率
-        # self.scheduler.step()
+        self.scheduler.step()
 
         accs = np.array(corrects) / (querysz * task_num) # 可以考虑改进F1 score
         loss = np.array([i.detach() for i in losses_q]) / task_num

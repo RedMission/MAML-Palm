@@ -102,7 +102,8 @@ class MamlDataset(Dataset):
 
         for i,index in enumerate(flatten_query_x):
             query_x[i] = self.transform(self.raw_data[index[0]][index[1]])
-        return support_x, torch.LongTensor(support_y), query_x, torch.LongTensor(query_y)
+        return support_x, torch.LongTensor(support_y_relative), query_x, torch.LongTensor(query_y_relative)
+        # return support_x, support_y, query_x, query_y
 
     def __len__(self):
         return self.batchsz

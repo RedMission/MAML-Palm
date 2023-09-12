@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import warnings
 import torchvision.transforms as transforms
+from PIL import Image
 
 
 class Dataset(Dataset):
@@ -20,20 +21,37 @@ class Dataset(Dataset):
             warnings.simplefilter("ignore", category=UserWarning)
 
             return self.transform(self.x[idx]),self.y[idx]
-
+def render_img(arr):
+    '''
+    处理array的功能函数
+    '''
+    arr = (arr * 0.5) + 0.5
+    arr = np.uint8(arr * 255)
+    # 转换格式为PIL.Image.Image mode='RGB'
+    img = Image.fromarray(np.squeeze(arr), mode='L').convert('RGB')
+    return img
+def render_transform(x):
+    return render_img(x)
 def modeldataloader(raw_data, num_of_classes, shuffle, batch_size):
-    mid_pixel_value = 1.0 / 2
-    transform = transforms.Compose(
-        [
-            transforms.ToPILImage(),
-            transforms.Grayscale(num_output_channels=3), # 将单通道图像转换为三通道灰度图像
-            transforms.Resize(84),  # 图像尺寸太大会内存溢出
-            transforms.ToTensor(),
-            transforms.Normalize(
-                (mid_pixel_value,) * 3, (mid_pixel_value,) * 3
-            ),
-        ]
-    )
+    # mid_pixel_value = 1.0 / 2
+    # transform = transforms.Compose(
+    #     [
+    #         transforms.ToPILImage(),
+    #         transforms.Grayscale(num_output_channels=3), # 将单通道图像转换为三通道灰度图像
+    #         transforms.Resize(84),  # 图像尺寸太大会内存溢出
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(
+    #             (mid_pixel_value,) * 3, (mid_pixel_value,) * 3
+    #         ),
+    #     ]
+    # )
+    transform = transforms.Compose([render_transform,
+                                    transforms.Resize((84, 84)),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+                                    ])
+
+
     x = []
     y = [] # 随机选一个入列 每类出来没有重复
     for i in range(num_of_classes):

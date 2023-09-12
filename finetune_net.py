@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from learner_inception_new import Learner_inception_new
 from dataloader import modeldataloader, normaldataloader
+from    torch.nn import functional as F
 
 def match(unknowdata, model):
     return
@@ -179,7 +180,7 @@ if __name__ == '__main__':
 
     # 定义损失函数和优化器
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(loaded_model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = torch.optim.RMSprop(loaded_model.parameters(), lr=0.1, alpha=0.9)
     # 加载微调数据
     # 加载模板数据
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy",
@@ -187,7 +188,7 @@ if __name__ == '__main__':
     model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True,
                                        batch_size=16)
     # 微调训练循环
-    timestr = time.strftime('%Y%m%d_%H')
+    timestr = time.strftime('%Y%m%d_%H%M')
     writer = SummaryWriter('finetune_logs/'+timestr) # tensorboard
 
     for epoch in range(500):
@@ -195,7 +196,11 @@ if __name__ == '__main__':
         for batch_idx, (images, labels) in enumerate(model_dataloader):
             optimizer.zero_grad()
             outputs = loaded_model(images)
+            print("outputs:",outputs)
+            pred = F.softmax(outputs, dim=1).argmax(dim=1)
+            print("pred:",pred)
             loss = criterion(outputs, labels)
+            aaa = criterion(pred, labels)
             print(loss.item())
             writer.add_scalar('finetune-train/loss',loss.item(), epoch*model_dataloader.__len__()+batch_idx)
             loss.backward()

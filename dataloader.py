@@ -18,6 +18,7 @@ class Dataset(Dataset):
     def __getitem__(self, idx):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
+
             return self.transform(self.x[idx]),self.y[idx]
 
 def modeldataloader(raw_data, num_of_classes, shuffle, batch_size):

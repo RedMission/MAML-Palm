@@ -33,24 +33,11 @@ def render_img(arr):
 def render_transform(x):
     return render_img(x)
 def modeldataloader(raw_data, num_of_classes, shuffle, batch_size):
-    # mid_pixel_value = 1.0 / 2
-    # transform = transforms.Compose(
-    #     [
-    #         transforms.ToPILImage(),
-    #         transforms.Grayscale(num_output_channels=3), # 将单通道图像转换为三通道灰度图像
-    #         transforms.Resize(84),  # 图像尺寸太大会内存溢出
-    #         transforms.ToTensor(),
-    #         transforms.Normalize(
-    #             (mid_pixel_value,) * 3, (mid_pixel_value,) * 3
-    #         ),
-    #     ]
-    # )
     transform = transforms.Compose([render_transform,
                                     transforms.Resize((84, 84)),
                                     transforms.ToTensor(),
                                     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
                                     ])
-
 
     x = []
     y = [] # 随机选一个入列 每类出来没有重复
@@ -63,20 +50,14 @@ def modeldataloader(raw_data, num_of_classes, shuffle, batch_size):
     # 实例化对象
     train_dataset = Dataset(x, y, transform)
     # print("dataset长度：",train_dataset.__len__())
-    return DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
+    return DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=1)
 def normaldataloader(raw_data, num_of_classes, shuffle, batch_size):
     mid_pixel_value = 1.0 / 2
-    transform = transforms.Compose(
-        [
-            transforms.ToPILImage(),
-            transforms.Grayscale(num_output_channels=3), # 将单通道图像转换为三通道灰度图像
-            transforms.Resize(84),  # 图像尺寸太大会内存溢出
-            transforms.ToTensor(),
-            transforms.Normalize(
-                (mid_pixel_value,) * 3, (mid_pixel_value,) * 3
-            ),
-        ]
-    )
+    transform = transforms.Compose([render_transform,
+                                    transforms.Resize((84, 84)),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+                                    ])
     x = []
     y = [] # 所有的都入列
     for i in range(num_of_classes):
@@ -86,7 +67,7 @@ def normaldataloader(raw_data, num_of_classes, shuffle, batch_size):
     # 实例化对象
     train_dataset = Dataset(x, y, transform)
     print("dataset长度：",train_dataset.__len__())
-    return DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=2)
+    return DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=1)
 
 if __name__ == '__main__':
     raw_data = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_left.npy", allow_pickle=True).copy() #numpy.ndarray

@@ -129,9 +129,8 @@ if __name__ == '__main__':
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
 
     # loaded_model.to(device)
-    loaded_model.eval()
+    loaded_model.eval() # 固定BN和DropOut
     '''
-
 
     # 加载模板数据
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
@@ -183,27 +182,32 @@ if __name__ == '__main__':
     optimizer = torch.optim.RMSprop(loaded_model.parameters(), lr=0.001, alpha=0.9)
     # 加载微调数据
     # 加载模板数据
+    batch_size = 16
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy",
                             allow_pickle=True).copy()  # numpy.ndarray
     model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True,
-                                       batch_size=16)
+                                       batch_size=batch_size)
     # 微调训练循环
     timestr = time.strftime('%Y%m%d_%H%M')
     writer = SummaryWriter('finetune_logs/'+timestr) # tensorboard
 
     for epoch in range(20):
         print("---------",epoch)
+        corrects = 0
+        len = 0
         for batch_idx, (images, labels) in enumerate(model_dataloader):
             optimizer.zero_grad()
             outputs = loaded_model(images)
-            # print("outputs:",outputs)
-            print("labels:",labels)
             pred = F.softmax(outputs, dim=1).argmax(dim=1)
-            print("pred:",pred)
             loss = criterion(outputs, labels)
-            print(loss.item())
-            writer.add_scalar('finetune-train/loss',loss.item(), epoch*model_dataloader.__len__()+batch_idx)
             loss.backward()
             optimizer.step()
+            corrects += torch.eq(pred, labels).sum().item()  # 可以考虑改进F1 score
+            writer.add_scalar('finetune/loss',loss.item(), epoch*model_dataloader.__len__()+batch_idx)
+
+        accs = corrects / raw_modeldata.shape[0]  # 可以考虑改进F1 score
+        print("accs:", accs)
+        writer.add_scalar('finetune/acc', accs, epoch)
+
     torch.save(loaded_model.state_dict(), "F:\jupyter_notebook\MAML-Palm\model_path/finetunemodel/"+time.strftime("%Y%m%d-%H%M",time.localtime())+".pth")
 

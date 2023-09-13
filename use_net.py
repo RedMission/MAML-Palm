@@ -1,22 +1,14 @@
 import time
-
 import numpy as np
 import torch
 from  torch import nn
-
 from learner_inception_new import Learner_inception_new
 from dataloader import modeldataloader, normaldataloader
+from    torch.nn import functional as F
 
-def match(unknowdata, model):
-    return
-
-def cossimiliarity(a,b):
-    # 计算余弦相似度
-    dot_product = np.dot(a, b)
-    norm_sample = np.linalg.norm(a)
-    norm_template = np.linalg.norm(b)
-    similarity = dot_product / (norm_sample * norm_template)
-    return similarity
+'''
+直接用网络判别 1200/1380
+'''
 
 if __name__ == '__main__':
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -116,12 +108,12 @@ if __name__ == '__main__':
         ('relu', [True]),
         # __________inception3结束__________
         ('flatten', []),
-        # ('linear', [5, 88 * 8 * 8])  # x.shape后三位参数
+        ('linear', [230, 88 * 8 * 8])  # x.shape后三位参数
     ]
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "model_path/20230910-1814.pth"
+    model_name = "model_path/finetunemodel/IITDdata_right_newnet/20230913-1618.pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
@@ -129,35 +121,20 @@ if __name__ == '__main__':
     loaded_model.to(device)
     loaded_model.eval()
 
-    # 加载模板数据
+    # 加载数据
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
-    model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=False, batch_size=1)
-    # 计算模板
-    model = []
-    for i,item  in enumerate(model_dataloader): # 每个类别下随机取一张作为注册模板向量
-        model_data, model_label = item
-        model_i = loaded_model(model_data.to(device), vars=None, bn_training=True)
-        model.append(model_i.detach().numpy().reshape(-1))
-
-    # 加载待检测数据
-    raw_unknowdata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy",
-                       allow_pickle=True).copy()  # numpy.ndarray
-    unknow_dataloader = normaldataloader(raw_data=raw_unknowdata, num_of_classes=200, shuffle=True,
-                                         batch_size=1)
+    dataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True, batch_size=1)
     count = 0
-    for i,item  in enumerate(unknow_dataloader):
+    for i,item  in enumerate(dataloader):
         unknow_data, unknow_label = item
         vector = loaded_model(unknow_data.to(device), vars=None, bn_training=True)
-        unknow_data, unknow_label=vector.detach().numpy().reshape(-1), unknow_label.item()
+        pred = F.softmax(vector, dim=1).argmax(dim=1)
         print("-------")
-        print("真实:",unknow_label)
-        tmp = []
-        for model_i in model:
-            tmp.append(cossimiliarity(unknow_data,model_i))
-        log = tmp.index(max(tmp))
-        print("预测:",log)
-        if unknow_label == log:
+        print("真实:",unknow_label.item())
+        print("预测:",pred.item())
+        if unknow_label.item() == pred.item():
             count += 1
+    print(dataloader.__len__())
     print(count)
 
 

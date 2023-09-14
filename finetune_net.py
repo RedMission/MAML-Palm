@@ -9,8 +9,9 @@ from learner_inception_new import Learner_inception_new
 from dataloader import modeldataloader, normaldataloader
 from    torch.nn import functional as F
 
-def match(unknowdata, model):
-    return
+'''
+微调 maml输出部分（但意义不大
+'''
 
 def cossimiliarity(a,b):
     # 计算余弦相似度
@@ -130,40 +131,7 @@ if __name__ == '__main__':
 
     # loaded_model.to(device)
     loaded_model.eval() # 固定BN和DropOut
-    '''
 
-    # 加载模板数据
-    raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
-    model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=False, batch_size=1)
-    计算模板
-    model = []
-    for i,item  in enumerate(model_dataloader): # 每个类别下随机取一张作为注册模板向量
-        model_data, model_label = item
-        model_i = loaded_model(model_data.to(device), vars=None, bn_training=True)
-        model.append(model_i.detach().numpy().reshape(-1))
-
-    # 加载待检测数据
-    raw_unknowdata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy",
-                       allow_pickle=True).copy()  # numpy.ndarray
-    unknow_dataloader = normaldataloader(raw_data=raw_unknowdata, num_of_classes=200, shuffle=True,
-                                         batch_size=1)
-    count = 0
-    for i,item  in enumerate(unknow_dataloader):
-        unknow_data, unknow_label = item
-        vector = loaded_model(unknow_data.to(device), vars=None, bn_training=True)
-        unknow_data, unknow_label=vector.detach().numpy().reshape(-1), unknow_label.item()
-        print("-------")
-        print("真实:",unknow_label)
-        tmp = []
-        for model_i in model:
-            tmp.append(cossimiliarity(unknow_data,model_i))
-        log = tmp.index(max(tmp))
-        print("预测:",log)
-        if unknow_label == log:
-            count += 1
-    print(count)
-
-    '''
     ###### 修稿输出层
     # 新任务的类别数
     num_classes = 230

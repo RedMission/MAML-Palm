@@ -2,12 +2,14 @@ import time
 import numpy as np
 import torch
 from  torch import nn
+
+from function import plotDET
 from learner_inception_new import Learner_inception_new
 from dataloader import modeldataloader, normaldataloader
 from    torch.nn import functional as F
 
 '''
-用网络提取特征 计算距离  /1380
+用网络提取特征 计算距离  1203/1380
 '''
 
 def match(unknowdata, model):
@@ -118,13 +120,13 @@ if __name__ == '__main__':
         ('downsample', [88, 30, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
         ('relu', [True]),
         # __________inception3结束__________
-        ('flatten', []),
-        ('linear', [230, 88 * 8 * 8])  # x.shape后三位参数
+        # ('flatten', []),
+        # ('linear', [230, 88 * 8 * 8])  # x.shape后三位参数
     ]
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "model_path/finetunemodel/IITDdata_right_newnet/20230913-1618.pth"
+    model_name = "model_path/new_config/20230904-1239.pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
@@ -144,18 +146,26 @@ if __name__ == '__main__':
         model.append(model_i.detach().numpy().reshape(-1))
 
     count = 0
+    ledis, iledis = [],[]
     for i,item  in enumerate(unknowdataloader):
         unknow_data, unknow_label = item
         vector = loaded_model(unknow_data.to(device), vars=None, bn_training=True).detach().numpy().reshape(-1)
         print("-------")
         print("真实:",unknow_label.item())
         tmp = []
-        for model_i in model:
-            tmp.append(cossimiliarity(vector,model_i))
+        for i in range(len(model)):
+            unknoe_vector = cossimiliarity(vector,model[i])
+            tmp.append(unknoe_vector)
+            if i == unknow_label.item():
+                ledis.append(unknoe_vector)
+            else:
+                iledis.append(unknoe_vector)
+
         log = tmp.index(max(tmp))
         print("预测:",log)
         if unknow_label.item() == log:
             count += 1
+    plotDET(ledis, iledis)
     print(count)
 
 

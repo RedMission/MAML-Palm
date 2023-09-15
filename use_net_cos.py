@@ -3,25 +3,18 @@ import numpy as np
 import torch
 from  torch import nn
 
-from function import plotDET
+import function
 from learner_inception_new import Learner_inception_new
 from dataloader import modeldataloader, normaldataloader
 from    torch.nn import functional as F
 
 '''
-用网络提取特征 计算距离  1203/1380
+用网络提取特征 计算距离  1216/1380
 '''
 
 def match(unknowdata, model):
     return
 
-def cossimiliarity(a,b):
-    # 计算余弦相似度
-    dot_product = np.dot(a, b)
-    norm_sample = np.linalg.norm(a)
-    norm_template = np.linalg.norm(b)
-    similarity = dot_product / (norm_sample * norm_template)
-    return similarity
 
 if __name__ == '__main__':
     # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -120,13 +113,13 @@ if __name__ == '__main__':
         ('downsample', [88, 30, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
         ('relu', [True]),
         # __________inception3结束__________
-        # ('flatten', []),
+        ('flatten', []),
         # ('linear', [230, 88 * 8 * 8])  # x.shape后三位参数
     ]
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "model_path/new_config/20230904-1239.pth"
+    model_name = "model_path/new_config/IITD/20230904-1239.pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
@@ -147,26 +140,34 @@ if __name__ == '__main__':
 
     count = 0
     ledis, iledis = [],[]
+    count_time = 0
     for i,item  in enumerate(unknowdataloader):
         unknow_data, unknow_label = item
+        # 计算特征
         vector = loaded_model(unknow_data.to(device), vars=None, bn_training=True).detach().numpy().reshape(-1)
         print("-------")
         print("真实:",unknow_label.item())
+        # 匹配相似度列表
         tmp = []
+        T1 = time.clock()
+        # 与模板逐个匹配
         for i in range(len(model)):
-            unknoe_vector = cossimiliarity(vector,model[i])
-            tmp.append(unknoe_vector)
+            unknow_vector = function.cossimiliarity(vector,model[i]) # 此处计算的是匹配度，越大越可能是同一个体
+            tmp.append(unknow_vector)
             if i == unknow_label.item():
-                ledis.append(unknoe_vector)
+                ledis.append(unknow_vector) # 合法匹配
             else:
-                iledis.append(unknoe_vector)
+                iledis.append(unknow_vector) # 非法匹配
 
         log = tmp.index(max(tmp))
+        T2 = time.clock()
+        count_time += (T2 - T1)
         print("预测:",log)
         if unknow_label.item() == log:
             count += 1
-    plotDET(ledis, iledis)
-    print(count)
+    print("正确预测数量:",count,"acc:",count/len(unknowdataloader))
+    print("平均时间:%s毫秒"%((count_time*1000)/len(unknowdataloader)))
+    function.plotDET(ledis, iledis)
 
 
 

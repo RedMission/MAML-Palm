@@ -8,6 +8,14 @@ import matplotlib.pyplot as plt
 一些功能函数
 '''
 
+def cossimiliarity(a,b):
+    # 计算余弦相似度【越大越好】
+    dot_product = np.dot(a, b)
+    norm_sample = np.linalg.norm(a)
+    norm_template = np.linalg.norm(b)
+    similarity = dot_product / (norm_sample * norm_template)
+    return similarity
+
 # 欧式距离
 def cal_eu(v1, v2):
     return np.sqrt(((v1 - v2) ** 2).sum())
@@ -32,23 +40,25 @@ def cal_iou_bin(data1, data2, bin=100):
 
 
 # DET曲线
+
 def plotDET(ledis, iledis):
-    stop = min(max(ledis), max(iledis))
-    start = max(min(ledis), min(iledis))
+    stop = max(max(ledis), max(iledis))
+    start = min(min(ledis), min(iledis))
     # 取阈值
     num = 100
     thresholdlist = np.linspace(start, stop, num=num, endpoint=True, retstep=False, dtype=None)
-    far = []  # x
+    far = []  # x 由于使用的是匹配相似度，下从大到小生成
     frr = []  # y
-    for threshold in range(num):
-        x = len([i for i in iledis if i < thresholdlist[threshold]]) / len(iledis)
-        y = len([i for i in ledis if i > thresholdlist[threshold]]) / len(ledis)
+    for threshold_i in range(num):
+        x = len([i for i in iledis if i > thresholdlist[threshold_i]]) / len(iledis)
+        y = len([i for i in ledis if i < thresholdlist[threshold_i]]) / len(ledis) # 正类别漏查 DET
+        # y = len([i for i in ledis if i >= thresholdlist[threshold_i]]) / len(ledis) # 正类正查 roc
         far.append(x)
         frr.append(y)
     # 求曲线交点
     # 选出两曲线被包含的区间
-    points1 = [t for t in zip(far, frr) if far[0] <= t[0] <= far[-1]]
-    points2 = [t for t in zip(far, far) if far[0] <= t[0] <= far[-1]]
+    points1 = [t for t in zip(far, frr) if far[0] >= t[0] >= far[-1]]
+    points2 = [t for t in zip(far, far) if far[0] >= t[0] >= far[-1]]
     idx = 0
     nrof_points = len(points1)
     while idx < nrof_points - 1:
@@ -69,25 +79,24 @@ def plotDET(ledis, iledis):
 
     plt.plot(far, frr, color='b', linestyle='-')
     # 等误率
-    plt.plot([0, 1], [0, 1], color='y', linestyle='-.')
-    plt.xlim((0, 1))
-    plt.ylim((0, 1))
+    plt.plot([-0.2, 0.9], [-0.2, 0.9], color='y', linestyle='-.')
+    plt.xlim((0, 0.9))
+    plt.ylim((0, 0.9))
     plt.title('DET curve')
     plt.show()
     # return threshold
-
 
 # 复合DET曲线
 def plotDET_muti(value):  # 输入合法值与非法值元组构成的list
     linestyle = ['dotted', 'dashed', 'dashdot', (0, (1, 1)), (0, (1, 2)), (0, (2, 1)), (0, (2, 2))]
     color = ['b', 'r', 'g', 'm', 'k', 'c']
-    plt.plot([0, 1], [0, 1], color='y', linestyle='-.')
+    plt.plot([-0.2, 1], [-0.2, 1], color='y', linestyle='-.')
     for index in range(len(value)):
         print('index=', index)
         ledis = value[index][0]
         iledis = value[index][1]
-        stop = min(max(ledis), max(iledis))
-        start = max(min(ledis), min(iledis))
+        stop = max(max(ledis), max(iledis))
+        start = min(min(ledis), min(iledis))
         # 取阈值
         num = 100
         thresholdlist = np.linspace(start, stop, num=num, endpoint=True, retstep=False, dtype=None)
@@ -100,8 +109,8 @@ def plotDET_muti(value):  # 输入合法值与非法值元组构成的list
             frr.append(y)
         # 求曲线交点
         # 选出两曲线被包含的区间
-        points1 = [t for t in zip(far, frr) if far[0] <= t[0] <= far[-1]]
-        points2 = [t for t in zip(far, far) if far[0] <= t[0] <= far[-1]]
+        points1 = [t for t in zip(far, frr) if far[0] >= t[0] >= far[-1]]
+        points2 = [t for t in zip(far, far) if far[0] >= t[0] >= far[-1]]
         idx = 0
         nrof_points = len(points1)
         while idx < nrof_points - 1:

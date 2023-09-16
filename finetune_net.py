@@ -124,13 +124,13 @@ if __name__ == '__main__':
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "model_path/new_config/20230915-1859.pth"
+    model_name = "model_path/20230916-1718.pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
 
     # loaded_model.to(device)
-    loaded_model.eval() # 固定BN和DropOut
+    # loaded_model.eval() # 固定BN和DropOut
 
     ###### 修稿输出层
     # 新任务的类别数

@@ -113,13 +113,13 @@ if __name__ == '__main__':
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "model_path/finetunemodel/IITDdata_right_newnet/20230913-1618.pth"
+    model_name = "model_path/finetunemodel/20230916-2051.pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
     # print(loaded_model.vars)
     loaded_model.to(device)
-    loaded_model.eval()
+    # loaded_model.eval()
 
     # 加载数据
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
@@ -134,8 +134,7 @@ if __name__ == '__main__':
         print("预测:",pred.item())
         if unknow_label.item() == pred.item():
             count += 1
-    print(dataloader.__len__())
-    print(count)
+    print("acc:",count/dataloader.__len__())
 
 
 

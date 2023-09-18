@@ -1,4 +1,6 @@
 import time
+
+import nmslib
 import numpy as np
 import torch
 from  torch import nn
@@ -9,7 +11,7 @@ from dataloader import modeldataloader, normaldataloader
 from    torch.nn import functional as F
 
 '''
-用网络提取特征 计算距离  1216/1380 平均时间:3.67
+用网络提取特征 计算距离  1232/1380  0.89 平均时间:3.67→0.39
 '''
 
 def match(unknowdata, model):
@@ -137,9 +139,21 @@ if __name__ == '__main__':
         model_i = loaded_model(model_data.to(device), vars=None, bn_training=True)
         model.append(model_i.detach().numpy().reshape(-1))
 
+    # 创建搜索算法需要的index
+    index_data = np.array(model, dtype='float32')
+    # 初始化搜索算法index, 使用HNSW、Cosine Similarity
+    index = nmslib.init(method='hnsw', space='cosinesimil')
+    index.addDataPointBatch(index_data)
+    index.createIndex({'post': 2}, print_progress=True)
+
+
     count = 0
+    count_nms = 0
+
     ledis, iledis = [],[]
     count_time = 0
+    count_nmstime = 0
+
     for i,item  in enumerate(unknowdataloader):
         unknow_data, unknow_label = item
         # 计算特征
@@ -161,12 +175,27 @@ if __name__ == '__main__':
         log = tmp.index(max(tmp))
         T2 = time.clock()
         count_time += (T2 - T1)
-        print("预测:",log)
+
+        T3 = time.clock()
+        ids, distances = index.knnQuery(vector, k=1)
+        T4 = time.clock()
+        count_nmstime += (T4 - T3)
+
+        print("逐个比对的预测:",log)
         if unknow_label.item() == log:
             count += 1
-    print("正确预测数量:",count,"acc:",count/len(unknowdataloader))
-    print("平均时间:%s毫秒"%((count_time*1000)/len(unknowdataloader)))
-    function.plotDET(ledis, iledis)
+        print("向量数据库的预测:", ids)
+        if unknow_label.item() == ids:
+            count_nms += 1
+
+    print("----------")
+    print("逐个比对正确预测数量:",count,"acc:",count/len(unknowdataloader))
+    print("向量数据库比对正确预测数量:",count_nms,"acc:",count_nms/len(unknowdataloader))
+
+    print("逐个比对平均时间:%s毫秒"%((count_time*1000)/len(unknowdataloader)))
+    print("向量数据库比对平均时间:%s毫秒"%((count_nmstime*1000)/len(unknowdataloader)))
+
+    # function.plotDET(ledis, iledis)
 
 
 

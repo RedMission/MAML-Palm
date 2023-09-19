@@ -152,7 +152,7 @@ if __name__ == '__main__':
     dim, measure = index_data.shape[1], faiss.METRIC_INNER_PRODUCT # 内积
     param = 'PCA32,HNSW32'
     index_faiss = faiss.index_factory(dim, param, measure)
-    index.train(index_data) # 加pca后需要先训练
+    index_faiss.train(index_data) # 加pca后需要先训练
     index_faiss.add(index_data)
 
     count = 0

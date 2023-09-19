@@ -9,6 +9,7 @@ import function
 from learner_inception_new import Learner_inception_new
 from dataloader import modeldataloader, normaldataloader
 from    torch.nn import functional as F
+import faiss
 
 '''
 用网络提取特征 计算距离  1232/1380  0.89 平均时间:3.67→0.39
@@ -132,7 +133,7 @@ if __name__ == '__main__':
     raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
     modeldataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=False, batch_size=1)
     unknowdataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True, batch_size=1)
-    # # 计算模板
+    # 计算模板
     model = []
     for i,item  in enumerate(modeldataloader): # 每个类别下随机取一张作为注册模板向量
         model_data, model_label = item
@@ -141,18 +142,27 @@ if __name__ == '__main__':
 
     # 创建搜索算法需要的index
     index_data = np.array(model, dtype='float32')
-    # 初始化搜索算法index, 使用HNSW、Cosine Similarity
+
+    # nmslib 初始化搜索算法index, 使用HNSW、Cosine Similarity
     index = nmslib.init(method='hnsw', space='cosinesimil')
     index.addDataPointBatch(index_data)
     index.createIndex({'post': 2}, print_progress=True)
 
+     # faiss初始化搜索算法index
+    dim, measure = index_data.shape[1], faiss.METRIC_INNER_PRODUCT # 内积
+    param = 'PCA32,HNSW32'
+    index_faiss = faiss.index_factory(dim, param, measure)
+    index.train(index_data) # 加pca后需要先训练
+    index_faiss.add(index_data)
 
     count = 0
     count_nms = 0
+    count_faiss = 0
 
     ledis, iledis = [],[]
     count_time = 0
     count_nmstime = 0
+    count_faisstime = 0
 
     for i,item  in enumerate(unknowdataloader):
         unknow_data, unknow_label = item
@@ -177,23 +187,36 @@ if __name__ == '__main__':
         count_time += (T2 - T1)
 
         T3 = time.clock()
-        ids, distances = index.knnQuery(vector, k=1)
+        ids, distances = index.knnQuery(vector, k=5)
+        print(ids)
         T4 = time.clock()
         count_nmstime += (T4 - T3)
+
+        T5 = time.clock()
+        Dis, Ind = index_faiss.search(np.expand_dims(vector, axis=0), k=1) # vector需要修改维度
+        print(Ind)
+        T6 = time.clock()
+        count_faisstime += (T6 - T5)
+
 
         print("逐个比对的预测:",log)
         if unknow_label.item() == log:
             count += 1
         print("向量数据库的预测:", ids)
-        if unknow_label.item() == ids:
+        if unknow_label.item() == ids[0]:
             count_nms += 1
+        print("faiss向量数据库的预测:", Ind)
+        if unknow_label.item() == Ind[0][0]:
+            count_faiss += 1
 
     print("----------")
     print("逐个比对正确预测数量:",count,"acc:",count/len(unknowdataloader))
     print("向量数据库比对正确预测数量:",count_nms,"acc:",count_nms/len(unknowdataloader))
+    print("faiss向量数据库比对正确预测数量:",count_faiss,"acc:",count_faiss/len(unknowdataloader))
 
     print("逐个比对平均时间:%s毫秒"%((count_time*1000)/len(unknowdataloader)))
     print("向量数据库比对平均时间:%s毫秒"%((count_nmstime*1000)/len(unknowdataloader)))
+    print("faiss向量数据库比对平均时间:%s毫秒"%((count_faisstime*1000)/len(unknowdataloader)))
 
     # function.plotDET(ledis, iledis)
 

@@ -150,9 +150,11 @@ if __name__ == '__main__':
 
      # faiss初始化搜索算法index
     dim, measure = index_data.shape[1], faiss.METRIC_INNER_PRODUCT # 内积
-    param = 'PCA32,HNSW32'
+    param = 'PCAR64,HNSW32'
     index_faiss = faiss.index_factory(dim, param, measure)
-    index_faiss.train(index_data) # 加pca后需要先训练
+    faiss.normalize_L2(index_data) # 标准化以使用余弦相似性
+    if index_faiss.is_trained==False:
+        index_faiss.train(index_data) # 加pca后需要先训练
     index_faiss.add(index_data)
 
     count = 0
@@ -192,8 +194,10 @@ if __name__ == '__main__':
         T4 = time.clock()
         count_nmstime += (T4 - T3)
 
+        vector_faiss = np.expand_dims(vector, axis=0) # vector需要修改维度
+        faiss.normalize_L2(vector_faiss)  # 标准化以使用余弦相似性
         T5 = time.clock()
-        Dis, Ind = index_faiss.search(np.expand_dims(vector, axis=0), k=1) # vector需要修改维度
+        Dis, Ind = index_faiss.search(vector_faiss, k=1)
         print(Ind)
         T6 = time.clock()
         count_faisstime += (T6 - T5)

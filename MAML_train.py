@@ -192,14 +192,111 @@ def main():
         ('flatten', []),
         ('linear', [args.n_way, 88 * 8 * 8])  # x.shape后三位参数
     ]
+    config_inception_4_Residual_se = [  # 格式：[('类型',[参数，参数，…]),()]
+        ('conv2d', [10, 3, 3, 3, 1, 0]),
+        ('bn', [10]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+        # ————————注意力机制————————
+        ('SqueezeExcite', [10]),
 
+        # inception 输入为10，与conv1 中的10对应
+        ('branch1x1', [16, 10, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 10, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),  # 核考虑换成3*3
+
+        ('branch3x3_1', [16, 10, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 10, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 10, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+
+        ('relu', [True]),
+
+        # inception1结束
+        # ————————下一个卷积层————————
+        ('conv2d', [15, 88, 3, 3, 1, 0]),  #
+        ('bn', [15]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [15]),
+
+        # inception2 输入为20，与conv2 中输出的20对应
+        ('branch1x1', [16, 15, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 15, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 15, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 15, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 15, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception2结束__________
+        # ————————下一个卷积层————————
+        ('conv2d', [20, 88, 3, 3, 1, 0]),
+        ('bn', [20]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [20]),
+
+        # inception3输入为20，与conv2 中输出的30对应
+        ('branch1x1', [16, 20, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 20, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 20, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 20, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 20, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception3结束__________
+        # ————————下一个卷积层————————
+        ('conv2d', [25, 88, 3, 3, 1, 0]),
+        ('bn', [25]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [25]),
+
+        # inception3输入为30，与conv2 中输出的30对应
+        ('branch1x1', [16, 25, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 25, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 25, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 25, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 25, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception4结束__________
+        ('flatten', []),
+        ('linear', [args.n_way, 88 * 3 * 3])  # x.shape后三位参数
+    ]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # 传入网络参数构建 maml网络
     maml = Meta(args, config_inception_Residual_se).to(device)
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
-    # print("maml:",maml)
+    print("maml:",maml.net)
+
     print('Total trainable tensors:', num)
 
     # batchsz here means total episode（一次选择support set和query set类别的过程） number
@@ -222,7 +319,7 @@ def main():
         db = DataLoader(train_data, args.task_num, shuffle=True, num_workers=2, pin_memory=True) # 生成可以将所有任务跑一遍的迭代器
 
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
-            # DA 导数退火 use_second_order在训练中是否使用二阶导
+            # DA 导数退火 use_second order在训练中是否使用二阶导
             # 前50 false
             # use_second_order = False
             if step < 700:
@@ -261,7 +358,7 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left_PSA_2+MC+SC+W_6.npy')
+    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left_PSA+SC+MC+W_10.npy')
     argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy')
 
     # argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)

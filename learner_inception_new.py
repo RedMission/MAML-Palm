@@ -161,17 +161,19 @@ class Learner_inception_new(nn.Module):
                 idx += 2
             elif name is 'linear':
                 w, b = vars[idx], vars[idx + 1]
+
                 x = F.linear(x, w, b)
                 idx += 2
             elif name is 'bn':
                 w, b = vars[idx], vars[idx + 1]
+                # print("bn_w:",w.shape)
                 running_mean, running_var = self.vars_bn[bn_idx], self.vars_bn[bn_idx+1]
                 x = F.batch_norm(x, running_mean, running_var, weight=w, bias=b, training=bn_training)
                 idx += 2
                 bn_idx += 2
 
             elif name is 'flatten':
-                # print("----x.shape:",x.shape)
+                # print("flatten--x.shape:",x.shape)
                 x = x.view(x.size(0), -1)
             elif name is 'reshape':
                 # [b, 8] => [b, 2, 2, 2]

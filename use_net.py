@@ -7,7 +7,7 @@ from dataloader import modeldataloader, normaldataloader
 from    torch.nn import functional as F
 
 '''
-直接用网络判别 1200/1380
+直接用网络判别 1200/1380 89%
 '''
 
 if __name__ == '__main__':

@@ -124,7 +124,7 @@ if __name__ == '__main__':
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "model_path/20230916-1718.pth"
+    model_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\IITD/20231008-1735(10).pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     # loaded_model.to(device)
     # loaded_model.eval() # 固定BN和DropOut
 
-    ###### 修稿输出层
+    #### 修改输出层
     # 新任务的类别数
     num_classes = 230
 
@@ -140,10 +140,11 @@ if __name__ == '__main__':
     last_linear_layer_index = -1  # 线性层是模型的最后一层
     config_inception_Residual_se[last_linear_layer_index] = ('linear', [num_classes,  88 * 8 * 8])
 
-    # 线性层的参数已经被添加到 vars 中，需要更新它们
-    loaded_model.vars[last_linear_layer_index * 2] = nn.Parameter(torch.ones(num_classes, 88 * 8 * 8))
+    # 线性层的参数已经被添加到 vars 中，需要更新它们 w,b
+    w = nn.Parameter(torch.ones([num_classes,  88 * 8 * 8]))
+    torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值
+    loaded_model.vars[last_linear_layer_index * 2] = w
     loaded_model.vars[last_linear_layer_index * 2 + 1] = nn.Parameter(torch.zeros(num_classes))
-
 
     # 定义损失函数和优化器
     criterion = nn.CrossEntropyLoss()
@@ -155,15 +156,17 @@ if __name__ == '__main__':
                             allow_pickle=True).copy()  # numpy.ndarray
     model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True,
                                        batch_size=batch_size)
+    unknowdataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True, batch_size=1)
+
     # 微调训练循环
     timestr = time.strftime('%Y%m%d_%H%M')
     writer = SummaryWriter('finetune_logs/'+timestr) # tensorboard
 
-    for epoch in range(20):
+    for epoch in range(50):
         print("---------",epoch)
         corrects = 0
         len = 0
-        for batch_idx, (images, labels) in enumerate(model_dataloader):
+        for batch_idx, (images, labels) in enumerate(unknowdataloader):
             optimizer.zero_grad()
             outputs = loaded_model(images)
             pred = F.softmax(outputs, dim=1).argmax(dim=1)
@@ -171,7 +174,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             corrects += torch.eq(pred, labels).sum().item()  # 可以考虑改进F1 score
-            writer.add_scalar('finetune/loss',loss.item(), epoch*model_dataloader.__len__()+batch_idx)
+            writer.add_scalar('finetune/loss',loss.item(), epoch*unknowdataloader.__len__()+batch_idx)
 
         accs = corrects / raw_modeldata.shape[0]  # 可以考虑改进F1 score
         print("accs:", accs)

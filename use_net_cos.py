@@ -119,10 +119,108 @@ if __name__ == '__main__':
         ('flatten', []),
         # ('linear', [230, 88 * 8 * 8])  # x.shape后三位参数
     ]
+    config_inception_4_Residual_se = [  # 格式：[('类型',[参数，参数，…]),()]
+        ('conv2d', [10, 3, 3, 3, 1, 0]),
+        ('bn', [10]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+        # ————————注意力机制————————
+        ('SqueezeExcite', [10]),
+
+        # inception 输入为10，与conv1 中的10对应
+        ('branch1x1', [16, 10, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 10, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),  # 核考虑换成3*3
+
+        ('branch3x3_1', [16, 10, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 10, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 10, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+
+        ('relu', [True]),
+
+        # inception1结束
+        # ————————下一个卷积层————————
+        ('conv2d', [15, 88, 3, 3, 1, 0]),  #
+        ('bn', [15]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [15]),
+
+        # inception2 输入为20，与conv2 中输出的20对应
+        ('branch1x1', [16, 15, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 15, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 15, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 15, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 15, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception2结束__________
+        # ————————下一个卷积层————————
+        ('conv2d', [20, 88, 3, 3, 1, 0]),
+        ('bn', [20]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [20]),
+
+        # inception3输入为20，与conv2 中输出的30对应
+        ('branch1x1', [16, 20, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 20, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 20, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 20, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 20, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception3结束__________
+        # ————————下一个卷积层————————
+        ('conv2d', [25, 88, 3, 3, 1, 0]),
+        ('bn', [25]),
+        ('max_pool2d', [2, 2, 0]),
+        ('relu', [True]),
+
+        ('SqueezeExcite', [25]),
+
+        # inception3输入为30，与conv2 中输出的30对应
+        ('branch1x1', [16, 25, 1, 1, 1, 0]),
+
+        ('branch5x5_1', [16, 25, 1, 1, 1, 0]),
+        ('branch5x5_2', [24, 16, 5, 5, 1, 2]),
+
+        ('branch3x3_1', [16, 25, 1, 1, 1, 0]),
+        ('branch3x3_2', [24, 16, 3, 3, 1, 1]),
+        ('branch3x3_3', [24, 24, 3, 3, 1, 1]),
+
+        ('branch_pool', [24, 25, 1, 1, 1, 0]),
+        # 残差项
+        ('downsample', [88, 25, 1, 1, 1, 0]),  # 输入不确定；含一个conv2d 一个bn
+        ('relu', [True]),
+        # __________inception4结束__________
+        ('flatten', []),
+        # ('linear', [args.n_way, 88 * 3 * 3])  # x.shape后三位参数
+    ]
+
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "model_path/new_config/IITD/20230904-1239.pth"
+    model_name = "F:\jupyter_notebook\MAML-Palm\model_path/finetunemodel\inception_3\IITD_right/20231008-2104(10).pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
@@ -140,7 +238,7 @@ if __name__ == '__main__':
         model_i = loaded_model(model_data.to(device), vars=None, bn_training=True)
         model.append(model_i.detach().numpy().reshape(-1))
 
-    # 创建搜索算法需要的index
+    # 创建搜索算法需要的data
     index_data = np.array(model, dtype='float32')
 
     # nmslib 初始化搜索算法index, 使用HNSW、Cosine Similarity
@@ -151,7 +249,7 @@ if __name__ == '__main__':
      # faiss初始化搜索算法index
     dim, measure = index_data.shape[1], faiss.METRIC_INNER_PRODUCT # 内积
     param = 'PCAR64,HNSW32'
-    index_faiss = faiss.index_factory(dim, param, measure)
+    index_faiss = faiss.index_factory(dim, param, measure) # 通过字符串来创建索引 预处理、倒排、编码
     faiss.normalize_L2(index_data) # 标准化以使用余弦相似性
     if index_faiss.is_trained==False:
         index_faiss.train(index_data) # 加pca后需要先训练

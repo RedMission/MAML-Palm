@@ -365,7 +365,7 @@ if __name__ == '__main__':
 
     argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
 # argparser.add_argument('--epoch', type=int, help='epoch number', default=20000))
-    argparser.add_argument('--n_way', type=int, help='n way', default=5)
+    argparser.add_argument('--n_way', type=int, help='n way', default=10)
 
     argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=3) # default=1
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=2) # 原15

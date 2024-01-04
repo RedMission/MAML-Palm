@@ -39,7 +39,7 @@ class Meta(nn.Module):
         self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.meta_optim, T_max=100,
                                                               eta_min=0.0001)
 
-        # 内循环优化器 （待完成）
+        # 内循环优化器
         self.inner_loop_optimizer = inner_loop_optimizers.LSLRoptimizer(total_num_inner_loop_steps=self.task_num+1,
                                                                         init_update_lr=self.update_lr,
                                                                         use_learnable_learning_rates=True)
@@ -88,7 +88,7 @@ class Meta(nn.Module):
             self.current_epoch += 1 # 考虑其他从外部得到epoch的方法
             return loss_weights
 
-    def clip_grad_by_norm_(self, grad, max_norm): #如何使用
+    def clip_grad_by_norm_(self, grad, max_norm): #
         """
         in-place gradient clipping.
         :param grad: list of gradients

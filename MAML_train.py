@@ -289,13 +289,13 @@ def main():
         ('flatten', []),
         ('linear', [args.n_way, 88 * 3 * 3])  # x.shape后三位参数
     ]
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # 传入网络参数构建 maml网络
     maml = Meta(args, config_inception_Residual_se).to(device)
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
-    print("maml:",maml.net)
+    # print("maml:",maml.net)
 
     print('Total trainable tensors:', num)
 
@@ -321,7 +321,7 @@ def main():
         for step, (x_spt, y_spt, x_qry, y_qry) in enumerate(db): # 从迭代器取任务组合，每组完成一次外层循环，共step步外循环
             # DA 导数退火 use_second order在训练中是否使用二阶导
             # 前50 false
-            # use_second_order = False
+            use_second_order = False
             if step < 700:
                 use_second_order = False
             else:
@@ -353,16 +353,18 @@ def main():
                 print('Test acc:', accs)
 
     # Save final generator model 保存训练好的模型
-    torch.save(maml.net.state_dict(), "F:\jupyter_notebook\MAML-Palm\model_path/"+time.strftime("%Y%m%d-%H%M",time.localtime())+".pth")
+    torch.save(maml.net.state_dict(), "model_path/"+time.strftime("%Y%m%d-%H%M",time.localtime())+".pth")
 
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--train_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_left_PSA+SC+MC+W_10.npy')
-    argparser.add_argument('--test_data', type=str, help='', default='F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy')
+    # argparser.add_argument('--train_data', type=str, help='', default='../DAGAN\datasets\IITDdata_left.npy')
+    argparser.add_argument('--train_data', type=str, help='', default='../MCCGAN/datasets/IITDdata_left_PSA2+DC+SC+W_6.npy')
+    argparser.add_argument('--test_data', type=str, help='', default='../MCCGAN/datasets/IITDdata_right.npy')
 
-    # argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
-    argparser.add_argument('--epoch', type=int, help='epoch number', default=20000)
+
+    argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
+# argparser.add_argument('--epoch', type=int, help='epoch number', default=20000))
     argparser.add_argument('--n_way', type=int, help='n way', default=5)
 
     argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=3) # default=1
@@ -375,7 +377,7 @@ if __name__ == '__main__':
     argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-3)
     # argparser.add_argument('--meta_lr', type=float, help='meta-level outer learning rate', default=1e-5)
 
-    argparser.add_argument('--update_lr', type=float, help='task-level inner update learning rate', default=0.01)
+    argparser.add_argument('--update_lr', type=float, help='task-level inner update learning rate', default=0.001)
     # argparser.add_argument('--update_lr', type=float, help='task-level inner update learning rate', default=1e-9)
 
     argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5)

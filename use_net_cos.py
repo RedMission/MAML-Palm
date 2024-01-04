@@ -220,7 +220,7 @@ if __name__ == '__main__':
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "F:\jupyter_notebook\MAML-Palm\model_path/finetunemodel\inception_3\IITD_right/20231008-2104(10).pth"
+    model_name = "F:\jupyter_notebook\MAML-Palm\model_path/finetunemodel\inception_3\IITD_right/20231008-2125(10).pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
@@ -233,7 +233,7 @@ if __name__ == '__main__':
     unknowdataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True, batch_size=1)
     # 计算模板
     model = []
-    for i,item  in enumerate(modeldataloader): # 每个类别下随机取一张作为注册模板向量
+    for i,item  in enumerate(modeldataloader): # 每r个类别下随机取一张作为注册模板向量
         model_data, model_label = item
         model_i = loaded_model(model_data.to(device), vars=None, bn_training=True)
         model.append(model_i.detach().numpy().reshape(-1))

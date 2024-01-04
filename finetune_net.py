@@ -156,17 +156,18 @@ if __name__ == '__main__':
                             allow_pickle=True).copy()  # numpy.ndarray
     model_dataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True,
                                        batch_size=batch_size)
-    unknowdataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True, batch_size=1)
+    # unknowdataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True,
+    #                                     batch_size=32)
 
     # 微调训练循环
     timestr = time.strftime('%Y%m%d_%H%M')
     writer = SummaryWriter('finetune_logs/'+timestr) # tensorboard
 
-    for epoch in range(50):
+    for epoch in range(100):
         print("---------",epoch)
         corrects = 0
         len = 0
-        for batch_idx, (images, labels) in enumerate(unknowdataloader):
+        for batch_idx, (images, labels) in enumerate(model_dataloader):
             optimizer.zero_grad()
             outputs = loaded_model(images)
             pred = F.softmax(outputs, dim=1).argmax(dim=1)
@@ -174,7 +175,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             corrects += torch.eq(pred, labels).sum().item()  # 可以考虑改进F1 score
-            writer.add_scalar('finetune/loss',loss.item(), epoch*unknowdataloader.__len__()+batch_idx)
+            writer.add_scalar('finetune/loss',loss.item(), epoch*model_dataloader.__len__()+batch_idx)
 
         accs = corrects / raw_modeldata.shape[0]  # 可以考虑改进F1 score
         print("accs:", accs)

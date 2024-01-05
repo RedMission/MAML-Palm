@@ -68,10 +68,10 @@ def compere(model_type):
         unknow_data, unknow_label = item
         # 计算特征
         if model_type == "prototypical":
-            vector = prototypical_model(unknow_data.to(device), vars=None, bn_training=True).cpu().detach().numpy().reshape(
+            vector = prototypical_model.get_feature(unknow_data.to(device)).cpu().detach().numpy().reshape(
                 -1)
         elif model_type=="maml_new":
-            vector = maml_model(unknow_data.to(device), vars=None, bn_training=True).cpu().detach().numpy().reshape(-1)
+            vector = maml_model(unknow_data.to(device), bn_training=True).cpu().detach().numpy().reshape(-1)
 
         # print("-------")
         # print("真实:",unknow_label.item())

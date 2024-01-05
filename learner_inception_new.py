@@ -36,7 +36,7 @@ class Learner_inception_new(nn.Module):
                 self.vars.append(w)  # 加入list
                 # [ch_out]
                 self.vars.append(nn.Parameter(torch.zeros(param[0])))
-
+            # 标记
             elif name == 'downsample':
                 w = nn.Parameter(torch.ones(*param[:4]))
                 torch.nn.init.kaiming_normal_(w)  # 使用正态分布对输入张量进行赋值

@@ -137,3 +137,5 @@ def plotDET_muti(value):  # 输入合法值与非法值元组构成的list
     plt.ylabel('FRR')
     plt.legend()
     plt.show()
+
+

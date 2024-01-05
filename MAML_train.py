@@ -358,17 +358,17 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    # argparser.add_argument('--train_data', type=str, help='', default='../DAGAN\datasets\IITDdata_left.npy')
-    # argparser.add_argument('--train_data', type=str, help='', default='../MCCGAN/datasets/IITDdata_left_PSA2+DC+SC+W_6.npy')
-    argparser.add_argument('--train_data', type=str, help='', default='../MCCGAN/datasets/Tongji_session2_PSA+SC+MC+W_6.npy')
-    argparser.add_argument('--test_data', type=str, help='', default='../MCCGAN/datasets/Tongji_session1.npy')
+    argparser.add_argument('--train_data', type=str, help='', default='../DAGAN/datasets/IITDdata_left_PSA2+DC+SC+W_6.npy')
+    argparser.add_argument('--test_data', type=str, help='', default='../DAGAN/datasets/IITDdata_right.npy')
+    # argparser.add_argument('--train_data', type=str, help='', default='../MCCGAN/datasets/Tongji_session2_PSA+SC+MC+W_6.npy')
+    # argparser.add_argument('--test_data', type=str, help='', default='../MCCGAN/datasets/Tongji_session1.npy')
 
 
     argparser.add_argument('--epoch', type=int, help='epoch number', default=60000)
 # argparser.add_argument('--epoch', type=int, help='epoch number', default=20000))
-    argparser.add_argument('--n_way', type=int, help='n way', default=5)
+    argparser.add_argument('--n_way', type=int, help='n way', default=10)
 
-    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=3) # default=1
+    argparser.add_argument('--k_spt', type=int, help='k shot for support set', default=1) # default=1
     argparser.add_argument('--k_qry', type=int, help='k shot for query set', default=2) # 原15
     argparser.add_argument('--t_batchsz', type=int, help='train-batchsz', default=5000)
 
@@ -385,7 +385,7 @@ if __name__ == '__main__':
     argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10)
     # MSL 多步损失
     argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=False)
-    argparser.add_argument('--num_workers', type=int, help='数据加载子进程', default=4)
+    argparser.add_argument('--num_workers', type=int, help='数据加载子进程', default=8)
 
     args = argparser.parse_args()
 

@@ -13,6 +13,7 @@ import faiss
 
 '''
 用网络提取特征 计算距离  1232/1380  0.89 平均时间:3.67→0.39
+
 '''
 
 def match(unknowdata, model):
@@ -220,7 +221,7 @@ if __name__ == '__main__':
     loaded_model = Learner_inception_new(config_inception_Residual_se)
 
     # 加载保存的模型参数
-    model_name = "F:\jupyter_notebook\MAML-Palm\model_path/finetunemodel\inception_3\IITD_right/20231008-2125(10).pth"
+    model_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\IITD\同 IITD_10_3_MAML(new)_MCCGAN_6.pth"
     state_dict  = torch.load(model_name)
 
     loaded_model.load_state_dict(state_dict, strict=False) # 加载部分参数
@@ -268,8 +269,8 @@ if __name__ == '__main__':
         unknow_data, unknow_label = item
         # 计算特征
         vector = loaded_model(unknow_data.to(device), vars=None, bn_training=True).detach().numpy().reshape(-1)
-        print("-------")
-        print("真实:",unknow_label.item())
+        # print("-------")
+        # print("真实:",unknow_label.item())
         # 匹配相似度列表
         tmp = []
         T1 = time.clock()
@@ -320,7 +321,7 @@ if __name__ == '__main__':
     print("向量数据库比对平均时间:%s毫秒"%((count_nmstime*1000)/len(unknowdataloader)))
     print("faiss向量数据库比对平均时间:%s毫秒"%((count_faisstime*1000)/len(unknowdataloader)))
 
-    # function.plotDET(ledis, iledis)
+    function.plotDET(ledis, iledis)
 
 
 

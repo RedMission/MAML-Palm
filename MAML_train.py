@@ -291,7 +291,7 @@ def main():
     ]
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # 传入网络参数构建 maml网络
-    maml = Meta(args, config).to(device)
+    maml = Meta(args, config_inception_Residual_se).to(device)
 
     tmp = filter(lambda x: x.requires_grad, maml.parameters())
     num = sum(map(lambda x: np.prod(x.shape), tmp))
@@ -322,10 +322,10 @@ def main():
             # DA 导数退火 use_second order在训练中是否使用二阶导
             # 前50 false
             use_second_order = False
-            # if step < 700:
-            #     use_second_order = False
-            # else:
-            #     use_second_order = True
+            if step < 700:
+                use_second_order = False
+            else:
+                use_second_order = True
 
             x_spt, y_spt, x_qry, y_qry = x_spt.to(device), y_spt.to(device), x_qry.to(device), y_qry.to(device)
             accs,loss = maml(x_spt, y_spt, x_qry, y_qry,args.MSL_flag,use_second_order) # 传入的多个任务(共task_num个)
@@ -384,7 +384,7 @@ if __name__ == '__main__':
     argparser.add_argument('--update_step', type=int, help='task-level inner update steps', default=5)
     argparser.add_argument('--update_step_test', type=int, help='update steps for finetunning', default=10)
     # MSL 多步损失
-    argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=False)
+    argparser.add_argument('--MSL_flag', type=bool, help='是否使用多步损失', default=True)
     argparser.add_argument('--num_workers', type=int, help='数据加载子进程', default=8)
 
     args = argparser.parse_args()

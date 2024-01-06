@@ -1,3 +1,4 @@
+import math
 import time
 
 import nmslib
@@ -13,9 +14,15 @@ import faiss
 
 import sys
 sys.path.append(r'F:\jupyter_notebook\prototypical-networks')
-import protonets
-
-
+sys.path.append(r'F:\jupyter_notebook\Matching_Networks')
+import net
+from pylab import mpl
+mpl.rcParams['font.sans-serif'] = ['STZhongsong']    # 指定默认字体：解决plot不能显示中文问题
+mpl.rcParams['axes.unicode_minus'] = False
+import warnings
+warnings.filterwarnings('ignore')
+import matplotlib.pyplot as plt
+plt.rcParams['figure.dpi'] = 500 # 设置dpi
 '''
 用网络提取特征 计算距离  1232/1380  0.89 平均时间:3.67→0.39
 '''
@@ -30,13 +37,20 @@ def compere(model_type):
     model = []
     for i, item in enumerate(modeldataloader):  # 每r个类别下随机取一张作为注册模板向量
         model_data, model_label = item  # model:(1, 3, 84, 84)}
-        if model_type == "prototypical":
+        if model_type == "Prototypical":
             model_i = prototypical_model.get_feature(model_data.to(device), True)
             model.append(model_i.cpu().detach().numpy().reshape(-1))
 
-        elif model_type == "maml_new":
+        elif model_type == "FDIR-Net+DMAML":
+            model_i = maml_new_model(model_data.to(device), vars=None, bn_training=True)  #
+            model.append(model_i.cpu().detach().numpy().reshape(-1))
+        elif model_type == "MAML":
             model_i = maml_model(model_data.to(device), vars=None, bn_training=True)  #
             model.append(model_i.cpu().detach().numpy().reshape(-1))
+        elif model_type == "Matching":
+            model_i = match_model(model_data.to(device))  #
+            model.append(model_i.cpu().detach().numpy().reshape(-1))
+
 
     # 创建搜索算法需要的data
     index_data = np.array(model, dtype='float32')
@@ -48,7 +62,8 @@ def compere(model_type):
 
     # faiss初始化搜索算法index
     dim, measure = index_data.shape[1], faiss.METRIC_INNER_PRODUCT  # 内积
-    param = 'PCAR64,HNSW32'
+    # param = 'PCAR128,HNSW128'
+    param = 'PCAR64,HNSW128'
     index_faiss = faiss.index_factory(dim, param, measure)  # 通过字符串来创建索引 预处理、倒排、编码
     faiss.normalize_L2(index_data)  # 标准化以使用余弦相似性
     if index_faiss.is_trained == False:
@@ -67,11 +82,15 @@ def compere(model_type):
     for i, item in enumerate(unknowdataloader):
         unknow_data, unknow_label = item
         # 计算特征
-        if model_type == "prototypical":
-            vector = prototypical_model.get_feature(unknow_data.to(device)).cpu().detach().numpy().reshape(
-                -1)
-        elif model_type=="maml_new":
+        vector = 0
+        if model_type == "Prototypical":
+            vector = prototypical_model.get_feature(unknow_data.to(device),True).cpu().detach().numpy().reshape(-1)
+        elif model_type=="FDIR-Net+DMAML":
+            vector = maml_new_model(unknow_data.to(device), bn_training=True).cpu().detach().numpy().reshape(-1)
+        elif model_type=="MAML":
             vector = maml_model(unknow_data.to(device), bn_training=True).cpu().detach().numpy().reshape(-1)
+        elif model_type == "Matching":
+            vector = match_model(unknow_data.to(device)).cpu().detach().numpy().reshape(-1)
 
         # print("-------")
         # print("真实:",unknow_label.item())
@@ -86,7 +105,6 @@ def compere(model_type):
                 ledis.append(unknow_vector)  # 合法匹配
             else:
                 iledis.append(unknow_vector)  # 非法匹配
-
         log = tmp.index(max(tmp))
         T2 = time.process_time()
         count_time += (T2 - T1)
@@ -324,16 +342,39 @@ if __name__ == '__main__':
         # ('linear', [args.n_way, 88 * 3 * 3])  # x.shape后三位参数
     ]
 
-    maml_model = Learner_inception_new(config_inception_Residual_se)
-
+    maml_new_model = Learner_inception_new(config_inception_Residual_se)
+    maml_model = Learner_inception_new(net_config)
+    match_model =net.match_Embeddings_extractor(layer_size=64, num_channels=3, dropout_prob=0.0,
+                                      image_size=84)
     # 加载保存的模型参数
-    model_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\IITD/20231008-1735(10).pth"
-    state_dict  = torch.load(model_name)
-    maml_model.load_state_dict(state_dict, strict=False) # 加载部分参数
+    # IITD
+    # match_name = "F:\jupyter_notebook\Matching_Networks\model_path\IITD_6_10Way_3shot.pth"
+    # prototypical_name = r"F:\jupyter_notebook\prototypical-networks\scripts\train\few_shot\IITD_5_3(3C)\trainval\best_model.pt"
+    # maml_name = "F:\jupyter_notebook\MAML-Palm\model_path\同 IITD_10_3_MAML（原始）_MCCGAN_6.pth"
+    # maml_new_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\IITD/20231008-1735(10).pth"
+    # Tongji
+    match_name = "F:\jupyter_notebook\Matching_Networks\model_path\TJ_6_10Way_3shot.pth"
+    prototypical_name = r"F:\jupyter_notebook\prototypical-networks\scripts\train\few_shot\TJ_5_3(3C)\trainval\best_model.pt"
+    maml_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\同TJ_10_3_MAML（原始）_MCCGAN_6.pth"
+    maml_new_name = "F:\jupyter_notebook\MAML-Palm\model_path\同 TJ_ 5_3_MAML(new)_MCCGAN_6.pth"
+
+
+
+    state_dict = torch.load(match_name)
+    match_model.load_state_dict(state_dict, strict=False)  # 加载部分参数
+    match_model.to(device)
+    match_model.eval()
+
+    state_dict  = torch.load(maml_new_name)
+    maml_new_model.load_state_dict(state_dict, strict=False) # 加载部分参数
+    maml_new_model.to(device)
+    maml_new_model.eval()
+
+    state_dict = torch.load(maml_name)
+    maml_model.load_state_dict(state_dict, strict=False)  # 加载部分参数
     maml_model.to(device)
     maml_model.eval()
 
-    prototypical_name = r"F:\jupyter_notebook\prototypical-networks\scripts\train\few_shot\IITD_5_3(3C)\trainval\best_model.pt"
     prototypical_model = torch.load(prototypical_name)
     prototypical_model.to(device)
     prototypical_model.eval()
@@ -344,13 +385,15 @@ if __name__ == '__main__':
     unknowdataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True, batch_size=1)
 
     dislist = []
-    maml_l,maml_il = compere("maml_new")
-    dislist.append((maml_l,maml_il))
-    pro_l, pro_il = compere("prototypical")
-    dislist.append((pro_l, pro_il))
+    labels = ["Matching","Prototypical","MAML","FDIR-Net+DMAML"]
+    # labels = ["Matching"]
+    for i in labels:
+        ledis,ildis = compere(i)
+        dislist.append((ledis,ildis))
 
     # function.plotDET(ledis, iledis)
-    function.plotDET_muti(dislist)
+    function.plotDET_muti(dislist,labels)
+    function.kdeplot_muti(dislist,labels)
 
 
 

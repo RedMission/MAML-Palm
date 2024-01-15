@@ -348,15 +348,18 @@ if __name__ == '__main__':
                                       image_size=84)
     # 加载保存的模型参数
     # IITD
-    # match_name = "F:\jupyter_notebook\Matching_Networks\model_path\IITD_6_10Way_3shot.pth"
-    # prototypical_name = r"F:\jupyter_notebook\prototypical-networks\scripts\train\few_shot\IITD_5_3(3C)\trainval\best_model.pt"
-    # maml_name = "F:\jupyter_notebook\MAML-Palm\model_path\同 IITD_10_3_MAML（原始）_MCCGAN_6.pth"
-    # maml_new_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\IITD/20231008-1735(10).pth"
+    match_name = "F:\jupyter_notebook\Matching_Networks\model_path\IITD_6_10Way_3shot.pth"
+    prototypical_name = r"F:\jupyter_notebook\prototypical-networks\scripts\train\few_shot\IITD_5_3(3C)\trainval\best_model.pt"
+    maml_name = "F:\jupyter_notebook\MAML-Palm\model_path\同 IITD_10_3_MAML（原始）_MCCGAN_6.pth"
+    maml_new_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\IITD/20231008-1735(10).pth"
+    raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
+
     # Tongji
-    match_name = "F:\jupyter_notebook\Matching_Networks\model_path\TJ_6_10Way_3shot.pth"
-    prototypical_name = r"F:\jupyter_notebook\prototypical-networks\scripts\train\few_shot\TJ_5_3(3C)\trainval\best_model.pt"
-    maml_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\同TJ_10_3_MAML（原始）_MCCGAN_6.pth"
-    maml_new_name = "F:\jupyter_notebook\MAML-Palm\model_path\同 TJ_ 5_3_MAML(new)_MCCGAN_6.pth"
+    # match_name = "F:\jupyter_notebook\Matching_Networks\model_path\TJ_6_10Way_3shot.pth"
+    # prototypical_name = r"F:\jupyter_notebook\prototypical-networks\scripts\train\few_shot\TJ_5_3(3C)\trainval\best_model.pt"
+    # maml_name = "F:\jupyter_notebook\MAML-Palm\model_path\inception_3\同TJ_10_3_MAML（原始）_MCCGAN_6.pth"
+    # maml_new_name = "F:\jupyter_notebook\MAML-Palm\model_path\同 TJ_ 5_3_MAML(new)_MCCGAN_6.pth"
+    # raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\Tongji_session1.npy", allow_pickle=True).copy() #numpy.ndarray
 
 
 
@@ -380,7 +383,6 @@ if __name__ == '__main__':
     prototypical_model.eval()
 
     # 加载模板数据
-    raw_modeldata = np.load("F:\jupyter_notebook\DAGAN\datasets\IITDdata_right.npy", allow_pickle=True).copy() #numpy.ndarray
     modeldataloader = modeldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=False, batch_size=1)
     unknowdataloader = normaldataloader(raw_data=raw_modeldata, num_of_classes=raw_modeldata.shape[0], shuffle=True, batch_size=1)
 

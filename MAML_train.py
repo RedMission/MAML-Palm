@@ -358,8 +358,8 @@ def main():
 if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('--train_data', type=str, help='', default='../DAGAN/datasets/IITDdata_left_PSA2+DC+SC+W_6.npy')
-    argparser.add_argument('--test_data', type=str, help='', default='../DAGAN/datasets/IITDdata_right.npy')
+    argparser.add_argument('--train_data', type=str, help='', default='../MCCGAN/datasets/IITDdata_left_PSA2+DC+SC+W_6.npy')
+    argparser.add_argument('--test_data', type=str, help='', default='../MCCGAN/datasets/IITDdata_right.npy')
     # argparser.add_argument('--train_data', type=str, help='', default='../MCCGAN/datasets/Tongji_session2_PSA+SC+MC+W_6.npy')
     # argparser.add_argument('--test_data', type=str, help='', default='../MCCGAN/datasets/Tongji_session1.npy')
 
